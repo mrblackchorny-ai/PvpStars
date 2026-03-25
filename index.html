@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>PVP STAR ARENA</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <div class="header">
+        <div id="username" style="font-weight: bold;">Игрок</div>
+        <div class="balance-pill">
+            <span id="balance_val">0</span> ⭐
+        </div>
+    </div>
+
+    <div class="content">
+        <div id="tab-games" class="tab-content active">
+            <h2 style="margin: 0 0 15px 0;">PVP Игры</h2>
+            <div class="game-card-main" onclick="openGameLobby('Memory Duel')">
+                <div class="game-info">
+                    <span class="game-icon">🧠</span>
+                    <div>
+                        <div style="font-weight: bold; font-size: 18px;">Memory Duel</div>
+                        <div style="font-size: 12px; color: #888;">Найди все пары быстрее врага</div>
+                    </div>
+                </div>
+                <div class="online-badge">● Online</div>
+            </div>
+        </div>
+
+        <div id="lobby-screen" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background-color: cornflowerblue; z-index:500; padding: 20px; box-sizing: border-box;">
+            <div style="display: flex; align-items: center; margin-bottom: 20px;">
+                <button onclick="closeGameLobby()" style="background:none; border:none; color:black; font-size: 24px; padding: 0 15px 0 0;">←</button>
+                <h2 id="lobby-title" style="margin:0;">Lobby</h2>
+            </div>
+            <button class="btn-play" style="width: 100%; margin-bottom: 20px;" onclick="openCreateModal()">➕ СОЗДАТЬ КОМНАТУ</button>
+            <h3 style="font-size: 14px; text-align: center; color: black; text-transform: uppercase;">Доступные комнаты:</h3>
+            <div id="rooms-container"></div>
+        </div>
+
+        <div id="tab-rating" class="tab-content">
+            <h2 style="margin-top: 0;">Рейтинг</h2>
+            <p>1. Chornyllya — 13.45 ⭐</p>
+            <p>2. Player_X — 10.00 ⭐</p>
+        </div>
+
+        <div id="tab-profile" class="tab-content">
+            <h2 style="margin-top: 0;">Профиль</h2>
+            <p>Ваш Telegram ID: <span id="user_id">---</span></p>
+            <button class="btn-play" style="background: #e53935; width: 100%;" onclick="tg.close()">ВЫЙТИ В БОТА</button>
+        </div>
+    </div>
+
+    <div id="game-screen" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#1a1a1a; z-index:2000; flex-direction:column;">
+        <div style="padding: 20px; text-align: center;">
+            <h2 id="game-status" style="color: white; margin: 0; font-size: 18px;">Запоминайте!</h2>
+            <div style="background: #333; height: 8px; width: 100%; margin-top: 15px; border-radius: 5px; overflow: hidden;">
+                <div id="timer-bar" style="background: #2ecc71; width: 100%; height: 100%; transition: width 0.1s linear;"></div>
+            </div>
+        </div>
+        <div class="memory-grid" id="memory-grid"></div>
+    </div>
+
+    <div id="modal-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background-color: rgba(0,0,0,0.8); z-index:1000; justify-content:center; align-items:center;">
+        <div style="background:#222; padding:25px; border-radius:20px; width:80%; text-align:center; border: 1px solid #444;">
+            <h3 style="color:white; margin-top:0;">Выберите ставку</h3>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+                <button class="btn-play" onclick="createRoom(3)">3 ⭐</button>
+                <button class="btn-play" onclick="createRoom(5)">5 ⭐</button>
+                <button class="btn-play" onclick="createRoom(10)">10 ⭐</button>
+                <button class="btn-play" onclick="createRoom(15)">15 ⭐</button>
+            </div>
+            <button onclick="closeCreateModal()" style="margin-top:20px; background:none; border:none; color:#888;">Отмена</button>
+        </div>
+    </div>
+
+    <nav class="bottom-nav">
+        <div class="nav-item active" onclick="switchTab('tab-games', this)"><span class="nav-icon">🎮</span><span>Игры</span></div>
+        <div class="nav-item" onclick="switchTab('tab-rating', this)"><span class="nav-icon">🏆</span><span>Топ</span></div>
+        <div class="nav-item" onclick="switchTab('tab-profile', this)"><span class="nav-icon">👤</span><span>Профиль</span></div>
+    </nav>
+
+    <script src="script.js"></script>
+</body>
+</html>

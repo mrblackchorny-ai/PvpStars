@@ -1,0 +1,158 @@
+        /* БАЗОВЫЕ СТИЛИ (Дизайн будешь менять здесь) */
+        body {
+            background: url(img/ChatGPT-Image-10-мар.-2026-г._-16_18_36.webp);
+            background-attachment: fixed; 
+            background-position: center;  
+            background-size: cover;       
+            background-repeat: no-repeat;
+            color: white;
+            font-family: 'Segoe UI', sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        p{
+            color: black;
+            font-weight: 700;
+        }
+
+        /* Шапка */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            color: black;
+            background: rgb(255, 255, 255);
+            border-bottom: 1px solid rgb(255, 255, 255);
+        }
+
+        .balance-pill {
+            background: #ffcc00;
+            color: black;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        /* Контентные области */
+        .content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            padding-bottom: 80px; /* Чтобы не перекрывало меню */
+        }
+
+        .tab-content {
+            display: none; /* Скрыто по умолчанию */
+        }
+
+        .tab-content.active {
+            display: block; /* Показываем только активную */
+        }
+        #tab-rating{
+            background-color: white;
+            border-radius: 10px;
+            padding-bottom: 20px;
+            text-align: center;
+        }
+        /* Карточка игры */
+        .game-card {
+            background: #17212b;
+            border-radius: 15px;
+            margin-bottom: 15px;
+            border: 1px solid #2481cc;
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .btn-play {
+            background: #ffcc00;
+            color: black;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-weight: bold;
+        }
+
+        /* Нижнее меню */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            height: 65px;
+            background: #17212b;
+            display: flex;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .nav-item {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #888;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        .nav-item.active {
+            color: #2481cc;
+        }
+
+        .nav-icon {
+            font-size: 20px;
+            margin-bottom: 3px;
+        }
+        h2{
+            color: black;
+            text-align: center;
+        }
+.game-card-main {
+    background: #222;
+    border-radius: 15px;
+    padding: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border: 1px solid #333;
+    margin-bottom: 15px;
+    cursor: pointer;
+}
+
+.game-info {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.game-icon {
+    font-size: 32px;
+}
+
+.online-badge {
+    background: #1a1a1a;
+    color: #2ecc71;
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    border: 1px solid #2ecc71;
+}
+
+#lobby-screen{
+    background-attachment: fixed; 
+    background-position: center;  
+    background-size: cover;       
+    background-repeat: no-repeat;
+}
+.rooms-count{
+    color: yellow;
+}
