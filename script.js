@@ -20,16 +20,15 @@ let activeRooms = {};
 // --- СИСТЕМА ОБНОВЛЕНИЯ КОМНАТ (API) ---
 async function updateRoomsData() {
     try {
-        // Добавляем ?t= для обхода кэша браузера
         const response = await fetch(`${API_URL}?t=${Date.now()}`);
         if (!response.ok) throw new Error('Ошибка сервера');
         
         activeRooms = await response.json();
+        console.log("Комнаты загружены:", activeRooms);
+
+        // Убираем условие IF, чтобы комнаты отрисовывались сразу
+        renderRooms(); 
         
-        // Если открыто лобби, перерисовываем список комнат
-        if (document.getElementById('lobby-screen').style.display === 'block') {
-            renderRooms();
-        }
     } catch (e) {
         console.error("Ошибка обновления комнат:", e);
     }
