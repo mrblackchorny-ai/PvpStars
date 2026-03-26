@@ -1,4 +1,4 @@
-const API_URL = "https://DoggyJoggy.pythonanywhere.com/rooms";
+const API_URL = "https://DoggyJoggy.pythonanywhere.com";
 const tg = window.Telegram.WebApp;
 
 tg.ready();
@@ -17,28 +17,35 @@ document.getElementById('balance_val').innerText = currentBalance;
 
 let activeRooms = {};
 
-// --- СИСТЕМА ОБНОВЛЕНИЯ КОМНАТ (API) ---
+// Вспомогательная функция для запросов к API
+async function apiCall(endpoint, paramsObj) {
+    const query = new URLSearchParams(paramsObj).toString();
+    try {
+        const response = await fetch(`${API_URL}/${endpoint}?${query}`);
+        return await response.json();
+    } catch (e) {
+        console.error("API Error:", e);
+        return null;
+    }
+}
+
+// --- СИСТЕМА ОБНОВЛЕНИЯ КОМНАТ ---
 async function updateRoomsData() {
     try {
-        const response = await fetch(`${API_URL}?t=${Date.now()}`);
+        const response = await fetch(`${API_URL}/rooms?t=${Date.now()}`);
         if (!response.ok) throw new Error('Ошибка сервера');
         
         activeRooms = await response.json();
-        console.log("Комнаты загружены:", activeRooms);
-
-        // Убираем условие IF, чтобы комнаты отрисовывались сразу
         renderRooms(); 
-        
     } catch (e) {
         console.error("Ошибка обновления комнат:", e);
     }
 }
 
-// Запускаем цикл обновления (каждые 5 секунд)
 setInterval(updateRoomsData, 5000);
-updateRoomsData(); // Первый запуск сразу
+updateRoomsData();
 
-// --- НАВИГАЦИЯ И ИНТЕРФЕЙС ---
+// --- НАВИГАЦИЯ ---
 function switchTab(tabId, element) {
     document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
@@ -64,50 +71,48 @@ function closeGameLobby() {
 function openCreateModal() { document.getElementById('modal-overlay').style.display = 'flex'; }
 function closeCreateModal() { document.getElementById('modal-overlay').style.display = 'none'; }
 
-// --- ЛОГИКА ВЗАИМОДЕЙСТВИЯ С БОТОМ ---
-function createRoom(bet) {
+// --- ЛОГИКА ВЗАИМОДЕЙСТВИЯ (ИСПРАВЛЕНО) ---
+async function createRoom(bet) {
     if (currentBalance < bet) return tg.showAlert("Недостаточно звёзд!");
     
-    tg.showConfirm(`Создать комнату на ${bet} ⭐?`, (ok) => {
+    tg.showConfirm(`Создать комнату на ${bet} ⭐?`, async (ok) => {
         if (ok) {
-            // Кодируем имя, чтобы не было проблем с кириллицей в URL
-            const userName = encodeURIComponent(user.first_name || "Игрок");
-            
-            // Отправляем запрос на Flask
-            fetch(`https://DoggyJoggy.pythonanywhere.com/create?user_id=${user.id}&bet=${bet}&name=${userName}`)
-                .then(response => {
-                    if (response.ok) {
-                        tg.showAlert("✅ Комната создана! Вернитесь в бота.");
-                        tg.close(); // Закрываем Mini App
-                    } else {
-                        tg.showAlert("❌ Ошибка при создании комнаты.");
-                    }
-                })
-                .catch(err => {
-                    console.error(err);
-                    tg.showAlert("❌ Ошибка сети.");
-                });
+            const userName = user?.first_name || "Игрок";
+            const res = await apiCall('api', {
+                action: 'create',
+                user_id: user.id,
+                bet: bet,
+                name: userName
+            });
+            if (res) {
+                tg.showAlert("✅ Комната создана! Ждите соперника в боте.");
+                tg.close();
+            }
         }
     });
 }
 
-function joinRoom(roomId) {
+async function joinRoom(roomId) {
     const room = activeRooms[roomId];
     if (!room) return tg.showAlert("Комната уже занята!");
     if (currentBalance < room.bet) return tg.showAlert("Мало звёзд!");
 
-    tg.showConfirm(`Играем против ${room.creator_name} на ${room.bet} ⭐?`, (ok) => {
+    tg.showConfirm(`Играем против ${room.creator_name} на ${room.bet} ⭐?`, async (ok) => {
         if (ok) {
-            tg.sendData(JSON.stringify({
-                action: "join_room", 
+            const res = await apiCall('api', {
+                action: 'join',
+                user_id: user.id,
                 room_id: roomId
-            }));
-            tg.close();
+            });
+            if (res) {
+                tg.showAlert("✅ Вы вошли в игру! Перейдите в бота.");
+                tg.close();
+            }
         }
     });
 }
 
-// --- ОТРИСОВКА СПИСКА КОМНАТ ---
+// --- ОТРИСОВКА ---
 function renderRooms() {
     const container = document.getElementById('rooms-container');
     if (!container) return;
@@ -133,11 +138,7 @@ function renderRooms() {
     });
 
     if (!hasRooms) {
-        container.innerHTML = `
-            <div style="text-align:center; color:rgba(255,255,255,0.5); margin-top:50px;">
-                <p>Пока нет активных игр.</p>
-                <p style="font-size: 0.8em;">Будь первым — создай свою!</p>
-            </div>`;
+        container.innerHTML = `<div style="text-align:center; color:rgba(255,255,255,0.5); margin-top:50px;"><p>Пока нет активных игр.</p></div>`;
     }
 }
 
@@ -146,7 +147,6 @@ const emojis = ['🍎', '🍋', '💎', '⭐', '🍀', '🔥', '👻', '🐱'];
 let flippedCards = [];
 let canClick = false;
 
-// Эта функция вызывается, когда оба игрока подтвердили участие (через URL параметр mode=battle)
 if (params.get('mode') === 'battle') {
     startMemoryGame();
 }
@@ -159,32 +159,27 @@ function startMemoryGame() {
     const grid = document.getElementById('memory-grid');
     grid.innerHTML = '';
     
-    // Перемешиваем карточки
     let gameCards = [...emojis, ...emojis].sort(() => Math.random() - 0.5);
     
     gameCards.forEach((emoji) => {
         const card = document.createElement('div');
-        card.className = 'card flipped'; // Сначала показываем рубашкой вниз
+        card.className = 'card flipped';
         card.innerHTML = `<div class="card-front">${emoji}</div><div class="card-back"></div>`;
         card.dataset.emoji = emoji;
         
         card.onclick = () => {
             if (!canClick || card.classList.contains('flipped') || flippedCards.length >= 2) return;
-            
             card.classList.add('flipped');
             flippedCards.push(card);
-            
             if (flippedCards.length === 2) {
                 canClick = false;
                 if (flippedCards[0].dataset.emoji === flippedCards[1].dataset.emoji) {
                     flippedCards = []; 
                     canClick = true;
-                    // Проверка на победу
                     if (document.querySelectorAll('.card.flipped').length === 16) {
                         setTimeout(() => endGame(true), 500);
                     }
                 } else {
-                    // Если не совпали — закрываем через 0.6 сек
                     setTimeout(() => {
                         flippedCards.forEach(c => c.classList.remove('flipped'));
                         flippedCards = [];
@@ -196,7 +191,6 @@ function startMemoryGame() {
         grid.appendChild(card);
     });
 
-    // Таймер на запоминание (10 секунд)
     let timeLeft = 10;
     const bar = document.getElementById('timer-bar');
     const timer = setInterval(() => {
@@ -204,7 +198,6 @@ function startMemoryGame() {
         bar.style.width = (timeLeft / 10) * 100 + "%";
         if (timeLeft <= 0) {
             clearInterval(timer);
-            // Переворачиваем все карты рубашкой вверх через 10 сек
             document.querySelectorAll('.card').forEach(c => c.classList.remove('flipped'));
             document.getElementById('game-status').innerText = "Ваш ход! Найдите пары";
             canClick = true;
@@ -212,18 +205,21 @@ function startMemoryGame() {
     }, 100);
 }
 
-function endGame(win) {
+// --- ФИНАЛ ИГРЫ (ИСПРАВЛЕНО) ---
+async function endGame(win) {
     const bet = params.get('bet') || 0;
     tg.showPopup({
         title: win ? "ПОБЕДА! 🏆" : "ПОРАЖЕНИЕ",
-        message: win ? `Вы нашли все пары! Результат отправлен боту.` : "Время вышло или ошибка.",
+        message: win ? `Вы нашли все пары!` : "Время вышло.",
         buttons: [{type: "ok"}]
-    }, () => {
-        tg.sendData(JSON.stringify({
-            action: "game_result", 
-            status: win ? "win" : "lose",
+    }, async () => {
+        // Отправляем результат на сервер
+        await apiCall('api', {
+            action: 'result',
+            user_id: user.id,
+            status: win ? 'win' : 'lose',
             bet: bet
-        }));
+        });
         tg.close();
     });
 }
