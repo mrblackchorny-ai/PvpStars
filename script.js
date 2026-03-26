@@ -1,4 +1,4 @@
-const API_URL = "https://DoggyJoggy.pythonanywhere.com/static/rooms.json";
+const API_URL = "https://DoggyJoggy.pythonanywhere.com/rooms";
 const tg = window.Telegram.WebApp;
 
 tg.ready();
