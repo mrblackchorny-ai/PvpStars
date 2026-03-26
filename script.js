@@ -1,4 +1,4 @@
-const API_URL = "https://DoggyJoggy.pythonanywhere.com/rooms.json"; // ЗАМЕНИ НА СВОЙ ЛОГИН
+const API_URL = "https://DoggyJoggy.pythonanywhere.com/static/rooms.json";
 const tg = window.Telegram.WebApp;
 
 tg.ready();
