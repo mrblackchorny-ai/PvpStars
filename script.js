@@ -71,20 +71,33 @@ function closeGameLobby() {
 function openCreateModal() { document.getElementById('modal-overlay').style.display = 'flex'; }
 function closeCreateModal() { document.getElementById('modal-overlay').style.display = 'none'; }
 
-// --- ЛОГИКА ВЗАИМОДЕЙСТВИЯ (ИСПРАВЛЕНО) ---
-async function createRoom(bet) {
+// --- ЛОГИКА ВЗАИМОДЕЙСТВИЯ (ОТКАТ К РАБОЧЕМУ TG.SENDDATA) ---
+function createRoom(bet) {
     if (currentBalance < bet) return tg.showAlert("Недостаточно звёзд!");
     
-    // Сразу закрываем и отправляем запрос, без лишних "ОК"
-    const userName = encodeURIComponent(user?.first_name || "Игрок");
-    fetch(`${API_URL}/api?action=create&user_id=${user.id}&bet=${bet}&name=${userName}`);
+    // Вместо fetch используем sendData, чтобы бот увидел кнопку
+    tg.sendData(JSON.stringify({
+        action: "create_room",
+        bet: parseInt(bet)
+    }));
+    
+    // Закрываем мини-апп, чтобы бот прислал ответное сообщение
     tg.close(); 
 }
-async function joinRoom(roomId) {
-    const room = activeRooms[roomId];
-    if (!room || currentBalance < room.bet) return tg.showAlert("Ошибка входа");
 
-    fetch(`${API_URL}/api?action=join&user_id=${user.id}&room_id=${roomId}`);
+function joinRoom(roomId) {
+    const room = active_rooms[roomId]; // Проверь, что переменная называется activeRooms или active_rooms (в твоем коде выше activeRooms)
+    
+    if (!room || currentBalance < room.bet) {
+        return tg.showAlert("Недостаточно звезд для входа!");
+    }
+
+    // Отправляем данные боту
+    tg.sendData(JSON.stringify({
+        action: "join_room",
+        room_id: roomId
+    }));
+    
     tg.close();
 }
 
