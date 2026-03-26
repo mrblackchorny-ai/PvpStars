@@ -70,12 +70,12 @@ function createRoom(bet) {
     
     tg.showConfirm(`Создать комнату на ${bet} ⭐?`, (ok) => {
         if (ok) {
-            tg.sendData(JSON.stringify({
-                action: "create_room", 
-                game: selectedGame, 
-                bet: bet
-            }));
-            tg.close();
+            // Вместо sendData используем закрытие с передачей параметров в бота через URL или просто уведомление
+            // Для Mini App открытых через Inline кнопки, лучший способ - отправить запрос на твой сервер
+            fetch(`https://DoggyJoggy.pythonanywhere.com/create?user_id=${user.id}&bet=${bet}&game=${selectedGame}`)
+                .then(() => {
+                    tg.close();
+                });
         }
     });
 }
