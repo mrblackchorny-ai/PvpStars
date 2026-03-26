@@ -70,11 +70,22 @@ function createRoom(bet) {
     
     tg.showConfirm(`Создать комнату на ${bet} ⭐?`, (ok) => {
         if (ok) {
-            // Вместо sendData используем закрытие с передачей параметров в бота через URL или просто уведомление
-            // Для Mini App открытых через Inline кнопки, лучший способ - отправить запрос на твой сервер
-            fetch(`https://DoggyJoggy.pythonanywhere.com/create?user_id=${user.id}&bet=${bet}&game=${selectedGame}`)
-                .then(() => {
-                    tg.close();
+            // Кодируем имя, чтобы не было проблем с кириллицей в URL
+            const userName = encodeURIComponent(user.first_name || "Игрок");
+            
+            // Отправляем запрос на Flask
+            fetch(`https://DoggyJoggy.pythonanywhere.com/create?user_id=${user.id}&bet=${bet}&name=${userName}`)
+                .then(response => {
+                    if (response.ok) {
+                        tg.showAlert("✅ Комната создана! Вернитесь в бота.");
+                        tg.close(); // Закрываем Mini App
+                    } else {
+                        tg.showAlert("❌ Ошибка при создании комнаты.");
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    tg.showAlert("❌ Ошибка сети.");
                 });
         }
     });
