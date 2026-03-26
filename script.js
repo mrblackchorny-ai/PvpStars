@@ -75,41 +75,17 @@ function closeCreateModal() { document.getElementById('modal-overlay').style.dis
 async function createRoom(bet) {
     if (currentBalance < bet) return tg.showAlert("Недостаточно звёзд!");
     
-    tg.showConfirm(`Создать комнату на ${bet} ⭐?`, async (ok) => {
-        if (ok) {
-            const userName = user?.first_name || "Игрок";
-            const res = await apiCall('api', {
-                action: 'create',
-                user_id: user.id,
-                bet: bet,
-                name: userName
-            });
-            if (res) {
-                tg.showAlert("✅ Комната создана! Ждите соперника в боте.");
-                tg.close();
-            }
-        }
-    });
+    // Сразу закрываем и отправляем запрос, без лишних "ОК"
+    const userName = encodeURIComponent(user?.first_name || "Игрок");
+    fetch(`${API_URL}/api?action=create&user_id=${user.id}&bet=${bet}&name=${userName}`);
+    tg.close(); 
 }
-
 async function joinRoom(roomId) {
     const room = activeRooms[roomId];
-    if (!room) return tg.showAlert("Комната уже занята!");
-    if (currentBalance < room.bet) return tg.showAlert("Мало звёзд!");
+    if (!room || currentBalance < room.bet) return tg.showAlert("Ошибка входа");
 
-    tg.showConfirm(`Играем против ${room.creator_name} на ${room.bet} ⭐?`, async (ok) => {
-        if (ok) {
-            const res = await apiCall('api', {
-                action: 'join',
-                user_id: user.id,
-                room_id: roomId
-            });
-            if (res) {
-                tg.showAlert("✅ Вы вошли в игру! Перейдите в бота.");
-                tg.close();
-            }
-        }
-    });
+    fetch(`${API_URL}/api?action=join&user_id=${user.id}&room_id=${roomId}`);
+    tg.close();
 }
 
 // --- ОТРИСОВКА ---
