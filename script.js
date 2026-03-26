@@ -86,21 +86,18 @@ function createRoom(bet) {
 }
 
 function joinRoom(roomId) {
-    const room = active_rooms[roomId]; // Проверь, что переменная называется activeRooms или active_rooms (в твоем коде выше activeRooms)
+    const room = activeRooms[roomId]; // Проверь, что имя совпадает с тем, что в renderRooms
     
-    if (!room || currentBalance < room.bet) {
-        return tg.showAlert("Недостаточно звезд для входа!");
-    }
+    if (!room) return tg.showAlert("Комната не найдена");
 
-    // Отправляем данные боту
+    // ОТПРАВКА ДАННЫХ
     tg.sendData(JSON.stringify({
-        action: "join_room",
-        room_id: roomId
+        action: "join_room",      // Бот ищет именно это слово
+        room_id: roomId           // И этот ID
     }));
     
     tg.close();
 }
-
 // --- ОТРИСОВКА ---
 function renderRooms() {
     const container = document.getElementById('rooms-container');
