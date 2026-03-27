@@ -270,10 +270,31 @@ function startSync() {
 
         if (!data || !data.scores) return;
 
-        // 1. Обновляем статус хода
+        // 1. ПРОВЕРКА КОНЦА ИГРЫ (Делаем в самом начале)
+        if (data.status === 'finished') {
+            canClick = false;
+            isMyTurn = false;
+            const winnerId = data.winner;
+            const isWinner = (winnerId == user?.id);
+            const winMsg = winnerId === 'draw' ? "НИЧЬЯ! 😎" : (isWinner ? "ТЫ ПОБЕДИЛ! 🏆" : "ТЫ ПРОИГРАЛ... 💀");
+            
+            const turnTxt = document.getElementById('turn-text');
+            if (turnTxt) {
+                turnTxt.style.color = "gold";
+                turnTxt.innerHTML = `
+                    <div style="font-size: 22px; margin-bottom: 5px;">${winMsg}</div>
+                    <div style="font-size: 16px; color: white;">Выигрыш: <b>${data.win_amount} ⭐</b></div>
+                    <button onclick="location.reload()" style="margin-top:10px; padding:8px 15px; background:#00ff00; border:none; border-radius:8px; color:black; font-weight:bold;">В ЛОББИ</button>
+                `;
+            }
+            // Рисуем финальное состояние карт и выходим
+            renderFinalCards(data);
+            return; 
+        }
+
+        // 2. Обновляем статус хода и счет (если игра еще идет)
         isMyTurn = (data.current_turn == user?.id);
 
-        // 2. Обновляем счет
         const myScoreEl = document.getElementById('my-score');
         const enemyScoreEl = document.getElementById('enemy-score');
         if (myScoreEl) myScoreEl.innerText = data.scores[user?.id] || 0;
@@ -281,31 +302,31 @@ function startSync() {
         const enemyId = Object.keys(data.scores).find(id => id != user?.id);
         if (enemyId && enemyScoreEl) enemyScoreEl.innerText = data.scores[enemyId] || 0;
 
-        // 3. Текст хода
         const turnTxt = document.getElementById('turn-text');
         if (turnTxt) {
             turnTxt.innerText = isMyTurn ? "ТВОЙ ХОД!" : "ОЖИДАНИЕ ВРАГА...";
             turnTxt.style.color = isMyTurn ? "#00ff00" : "#ff0000";
         }
 
-        // 4. СИНХРОНИЗАЦИЯ КАРТ (Самое важное!)
-        const cards = document.querySelectorAll('.card');
-        serverFlipped = data.flipped || []; // Обновляем глобальный массив
-        
-        cards.forEach((card, idx) => {
-            const isMatched = data.matched && data.matched.includes(idx);
-            const isFlippedNow = data.flipped && data.flipped.includes(idx);
+        // 3. СИНХРОНИЗАЦИЯ КАРТ
+        renderFinalCards(data);
 
-            if (isMatched) {
-                card.classList.add('flipped', 'matched');
-            } else if (isFlippedNow) {
-                card.classList.add('flipped');
-            } else {
-                // Если карты нет ни в совпавших, ни в открытых — убираем класс
-                // Именно это закроет карты у друга, когда ты промахнешься
-                card.classList.remove('flipped');
-            }
-        });
+    }, 400);
+}
 
-    }, 400); // 400мс — оптимально
+// Вынес отрисовку в отдельную мини-функцию, чтобы не дублировать код
+function renderFinalCards(data) {
+    const cards = document.querySelectorAll('.card');
+    cards.forEach((card, idx) => {
+        const isMatched = data.matched && data.matched.includes(idx);
+        const isFlippedNow = data.flipped && data.flipped.includes(idx);
+
+        if (isMatched) {
+            card.classList.add('flipped', 'matched');
+        } else if (isFlippedNow) {
+            card.classList.add('flipped');
+        } else {
+            card.classList.remove('flipped');
+        }
+    });
 }
