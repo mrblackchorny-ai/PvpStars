@@ -274,8 +274,8 @@ function startSync() {
         });
 
         if (!data || !data.scores) return;
-
-        // 1. ПРОВЕРКА КОНЦА ИГРЫ (Делаем в самом начале)
+        
+        // 1. ПРОВЕРКА КОНЦА ИГРЫ
         if (data.status === 'finished') {
             canClick = false;
             isMyTurn = false;
@@ -286,13 +286,14 @@ function startSync() {
             const turnTxt = document.getElementById('turn-text');
             if (turnTxt) {
                 turnTxt.style.color = "gold";
+                // ЗАМЕНЯЕМ location.reload() на exitToBot()
                 turnTxt.innerHTML = `
                     <div style="font-size: 22px; margin-bottom: 5px;">${winMsg}</div>
                     <div style="font-size: 16px; color: white;">Выигрыш: <b>${data.win_amount} ⭐</b></div>
-                    <button onclick="location.reload()" style="margin-top:10px; padding:8px 15px; background:#00ff00; border:none; border-radius:8px; color:black; font-weight:bold;">В ЛОББИ</button>
+                    <button onclick="exitToBot()" style="margin-top:10px; padding:8px 25px; background:#00ff00; border:none; border-radius:8px; color:black; font-weight:bold; cursor:pointer;">В ЛОББИ</button>
                 `;
             }
-            // Рисуем финальное состояние карт и выходим
+            // Рисуем финальное состояние карт
             renderFinalCards(data);
             return; 
         }
