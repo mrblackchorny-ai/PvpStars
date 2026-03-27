@@ -55,16 +55,19 @@
     </div>
 
 <div id="game-screen" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#1a1a1a; z-index:2000; flex-direction:column;">
-    <div id="scores-container" style="display: flex; justify-content: space-around; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 10px; margin-bottom: 10px;">
-    <div id="player1-box" style="text-align: center; border-bottom: 3px solid #3498db;">
-        <div style="font-size: 12px; opacity: 0.8;">ТЫ</div>
-        <div id="my-score" style="font-size: 20px; font-weight: bold;">0</div>
+    <div id="scores-container" style="display: flex; flex-direction: column; align-items: center; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 10px; margin-bottom: 10px;">
+    <div style="display: flex; justify-content: space-around; width: 100%; margin-bottom: 10px;">
+        <div id="player1-box" style="text-align: center; border-bottom: 3px solid #3498db; width: 40%;">
+            <div style="font-size: 12px; opacity: 0.8;">ТЫ</div>
+            <div id="my-score" style="font-size: 20px; font-weight: bold;">0</div>
+        </div>
+        <div id="turn-indicator" style="font-size: 24px; display: flex; align-items: center;">⚡</div>
+        <div id="player2-box" style="text-align: center; opacity: 0.5; width: 40%;">
+            <div style="font-size: 12px; opacity: 0.8;">ВРАГ</div>
+            <div id="enemy-score" style="font-size: 20px; font-weight: bold;">0</div>
+        </div>
     </div>
-    <div id="turn-indicator" style="font-size: 24px; display: flex; align-items: center;">⚡</div>
-    <div id="player2-box" style="text-align: center; opacity: 0.5;">
-        <div style="font-size: 12px; opacity: 0.8;">ВРАГ</div>
-        <div id="enemy-score" style="font-size: 20px; font-weight: bold;">0</div>
-    </div>
+    <div id="turn-text" style="color: #ffcc00; font-size: 14px; font-weight: bold; text-transform: uppercase;">Ожидание начала...</div>
 </div>
     <div style="padding: 20px; text-align: center;">
         <h2 id="game-status" style="color: white; margin: 0; font-size: 18px;">Приготовьтесь...</h2>
