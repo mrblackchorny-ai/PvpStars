@@ -226,14 +226,16 @@ function setupCardLogic() {
     
     cards.forEach((card, index) => {
         card.onclick = async () => {
-            if (!isMyTurn || card.classList.contains('flipped') || serverFlipped.length >= 2) {
+            // УБРАЛИ ПРОВЕРКУ serverFlipped.length >= 2
+            // Теперь, если ход твой и карта не открыта — клик сработает!
+            if (!isMyTurn || card.classList.contains('flipped') || card.classList.contains('matched')) {
                 return;
             }
 
+            // Визуально переворачиваем сразу для скорости
             card.classList.add('flipped');
-            serverFlipped.push(index); 
             
-            // ОСТАВЛЯЕМ ТОЛЬКО ОДИН ВЫЗОВ ТУТ:
+            // Отправляем запрос
             const response = await apiCall('api', {
                 action: 'make_move',
                 room_id: params.get('room_id'),
@@ -242,8 +244,9 @@ function setupCardLogic() {
             });
 
             if (!response || response.error) {
+                // Если сервер не разрешил ход (например, не твоя очередь на самом деле)
                 card.classList.remove('flipped');
-                serverFlipped = serverFlipped.filter(i => i !== index);
+                console.log("Ошибка хода:", response?.error);
             }
         };
     });
@@ -257,55 +260,52 @@ if (params.get('mode') === 'battle') {
     updateRoomsData();
 }
 function startSync() {
+    // Ускоряем до 400мс, чтобы игра была "живой"
     setInterval(async () => {
-        const data = await apiCall('api', { action: 'get_state', room_id: params.get('room_id') });
-        if (!data || !data.scores) return; // Проверка, что данные пришли
+        const data = await apiCall('api', { 
+            action: 'get_state', 
+            room_id: params.get('room_id'),
+            t: Date.now() // Защита от кэширования
+        });
 
-        // 1. Определяем ход
+        if (!data || !data.scores) return;
+
+        // 1. Обновляем статус хода
         isMyTurn = (data.current_turn == user?.id);
 
-        // 2. Обновляем счет (БЕЗОПАСНО)
+        // 2. Обновляем счет
         const myScoreEl = document.getElementById('my-score');
         const enemyScoreEl = document.getElementById('enemy-score');
-        
         if (myScoreEl) myScoreEl.innerText = data.scores[user?.id] || 0;
+        
+        const enemyId = Object.keys(data.scores).find(id => id != user?.id);
+        if (enemyId && enemyScoreEl) enemyScoreEl.innerText = data.scores[enemyId] || 0;
 
-        // Находим ID врага ОДИН РАЗ
-        const allIds = Object.keys(data.scores);
-        const enemyId = allIds.find(id => id != user?.id);
-
-        if (enemyId && enemyScoreEl) {
-            enemyScoreEl.innerText = data.scores[enemyId] || 0;
+        // 3. Текст хода
+        const turnTxt = document.getElementById('turn-text');
+        if (turnTxt) {
+            turnTxt.innerText = isMyTurn ? "ТВОЙ ХОД!" : "ОЖИДАНИЕ ВРАГА...";
+            turnTxt.style.color = isMyTurn ? "#00ff00" : "#ff0000";
         }
 
-        // 3. Подсвечиваем панель (с проверкой на наличие элементов)
-        const p1Box = document.getElementById('player1-box');
-        const p2Box = document.getElementById('player2-box');
-        const turnTxt = document.getElementById('turn-text');
-
-        if (p1Box) p1Box.style.opacity = isMyTurn ? "1" : "0.5";
-        if (p2Box) p2Box.style.opacity = isMyTurn ? "0.5" : "1";
-        if (turnTxt) turnTxt.innerText = isMyTurn ? "ТВОЙ ХОД!" : "ОЖИДАНИЕ ВРАГА...";
-
-        // 4. Синхронизируем карты
-        serverFlipped = data.flipped || [];
+        // 4. СИНХРОНИЗАЦИЯ КАРТ (Самое важное!)
         const cards = document.querySelectorAll('.card');
+        serverFlipped = data.flipped || []; // Обновляем глобальный массив
         
         cards.forEach((card, idx) => {
             const isMatched = data.matched && data.matched.includes(idx);
             const isFlippedNow = data.flipped && data.flipped.includes(idx);
 
             if (isMatched) {
-                // Если пара уже найдена — она открыта навсегда
                 card.classList.add('flipped', 'matched');
             } else if (isFlippedNow) {
-                // Если это текущий ход (кто-то открыл карту прямо сейчас) — показываем
                 card.classList.add('flipped');
             } else {
-                // ВАЖНО: Если карты нет ни в matched, ни в flipped — ЗАКРЫВАЕМ её
+                // Если карты нет ни в совпавших, ни в открытых — убираем класс
+                // Именно это закроет карты у друга, когда ты промахнешься
                 card.classList.remove('flipped');
             }
         });
 
-    }, 1000);
+    }, 400); // 400мс — оптимально
 }
