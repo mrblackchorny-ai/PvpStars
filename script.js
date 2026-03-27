@@ -258,12 +258,8 @@ function setupCardLogic() {
 // --- 6. ЗАПУСК ---
 if (params.get('mode') === 'battle') {
     startMemoryGame();
-    setInterval(async () => {
-        const data = await apiCall('api', { action: 'get_state', room_id: params.get('room_id') });
-        if (data) isMyTurn = (data.current_turn == user?.id);
-    }, 2000);
 } else {
-    setInterval(updateRoomsData, 5000);
+    
     updateRoomsData();
 }
 function startSync() {
@@ -276,7 +272,12 @@ function startSync() {
         isMyTurn = (data.current_turn == user?.id);
 
         // 2. Обновляем счет на экране
-        document.getElementById('my-score').innerText = data.scores[user?.id] || 0;
+        const myScoreEl = document.getElementById('my-score');
+if (myScoreEl) myScoreEl.innerText = data.scores[user?.id] || 0;
+
+const enemyScoreEl = document.getElementById('enemy-score');
+const enemyId = Object.keys(data.scores).find(id => id != user?.id);
+if (enemyId && enemyScoreEl) enemyScoreEl.innerText = data.scores[enemyId] || 0;
         const enemyId = Object.keys(data.scores).find(id => id != user?.id);
         if (enemyId) document.getElementById('enemy-score').innerText = data.scores[enemyId] || 0;
 
