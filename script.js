@@ -288,7 +288,7 @@ function startSync() {
         });
 
         if (!data || !data.scores) return;
-        
+        serverFlipped = data.flipped || [];
         // 1. ПРОВЕРКА КОНЦА ИГРЫ
         if (data.status === 'finished') {
             canClick = false;
