@@ -270,8 +270,8 @@ async function syncGameState() {
     if (!data) return;
 
     // 1. Кто сейчас ходит?
-    isMyTurn = (data.current_turn === user.id);
-    updateTurnUI();
+    isMyTurn = (String(data.current_turn) === String(user.id));
+    updateTurnUI(data);
 
     // 2. Какие карты открыл противник?
     data.opened_cards.forEach(idx => {
@@ -293,19 +293,25 @@ if (params.get('mode') === 'battle') {
     setInterval(syncGameState, 1500); 
 }
 
-function updateTurnUI() {
+function updateTurnUI(data) {
     const status = document.getElementById('game-status');
+    const turnText = document.getElementById('turn-text');
     const p1Box = document.getElementById('player1-box');
     const p2Box = document.getElementById('player2-box');
 
+    // Берем имя из данных сервера или ставим "Игрок", если данных нет
+    const activePlayerName = data.current_turn_name || (isMyTurn ? user.first_name : "Противник");
+
     if (isMyTurn) {
-        status.innerText = "ТВОЙ ХОД!";
+        if (status) status.innerText = "ТВОЙ ХОД!";
+        if (turnText) turnText.innerText = `ХОДИТ: ${user.first_name} (ВЫ)`;
         p1Box.style.opacity = "1";
         p1Box.style.borderBottom = "3px solid #3498db";
         p2Box.style.opacity = "0.5";
         p2Box.style.borderBottom = "none";
     } else {
-        status.innerText = "ОЖИДАНИЕ ВРАГА...";
+        if (status) status.innerText = "ОЖИДАНИЕ ВРАГА...";
+        if (turnText) turnText.innerText = `ХОДИТ: ${activePlayerName}`;
         p1Box.style.opacity = "0.5";
         p1Box.style.borderBottom = "none";
         p2Box.style.opacity = "1";
