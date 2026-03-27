@@ -221,3 +221,38 @@ function switchTab(tabId, element) {
     element.classList.add('active');
     tg.HapticFeedback.impactOccurred('light');
 }
+// --- ДОПОЛНИТЕЛЬНЫЕ ФУНКЦИИ ИНТЕРФЕЙСА (ДОБАВЬ В КОНЕЦ) ---
+
+let selectedGame = "";
+
+function openGameLobby(gameName) {
+    selectedGame = gameName;
+    const titleEl = document.getElementById('lobby-title');
+    const lobbyEl = document.getElementById('lobby-screen');
+    const navEl = document.querySelector('.bottom-nav');
+    
+    if (titleEl) titleEl.innerText = gameName;
+    if (lobbyEl) lobbyEl.style.display = 'block';
+    if (navEl) navEl.style.display = 'none';
+    
+    renderRooms();
+}
+
+function closeGameLobby() {
+    const lobbyEl = document.getElementById('lobby-screen');
+    const navEl = document.querySelector('.bottom-nav');
+    
+    if (lobbyEl) lobbyEl.style.display = 'none';
+    if (navEl) navEl.style.display = 'flex';
+}
+
+// Функции для модального окна создания комнаты
+function openCreateModal() { 
+    const modal = document.getElementById('modal-overlay');
+    if (modal) modal.style.display = 'flex'; 
+}
+
+function closeCreateModal() { 
+    const modal = document.getElementById('modal-overlay');
+    if (modal) modal.style.display = 'none'; 
+}
