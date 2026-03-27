@@ -19,6 +19,20 @@ let flippedCards = [];
 let serverFlipped = [];
 const emojis = ['🍎', '🍋', '💎', '⭐', '🍀', '🔥', '👻', '🐱'];
 
+async function exitToBot() {
+    console.log("Выход в бота...");
+    try {
+        await apiCall('api', { 
+            action: 'game_finished', 
+            room_id: params.get('room_id'),
+            user_id: user?.id 
+        });
+    } catch(e) { console.log(e); }
+
+    if (window.Telegram && window.Telegram.WebApp) {
+        window.Telegram.WebApp.close();
+    }
+}
 // --- 2. ИНИЦИАЛИЗАЦИЯ ИНТЕРФЕЙСА ---
 function initUI() {
     console.log("UI Initializing...");
@@ -286,14 +300,19 @@ function startSync() {
             const turnTxt = document.getElementById('turn-text');
             if (turnTxt) {
                 turnTxt.style.color = "gold";
-                // ЗАМЕНЯЕМ location.reload() на exitToBot()
+                // ВАЖНО: Весь этот блок заменяет содержимое элемента turn-text
                 turnTxt.innerHTML = `
                     <div style="font-size: 22px; margin-bottom: 5px;">${winMsg}</div>
                     <div style="font-size: 16px; color: white;">Выигрыш: <b>${data.win_amount} ⭐</b></div>
-                    <button onclick="exitToBot()" style="margin-top:10px; padding:8px 25px; background:#00ff00; border:none; border-radius:8px; color:black; font-weight:bold; cursor:pointer;">В ЛОББИ</button>
+                    <button id="exit-btn" style="margin-top:10px; padding:8px 25px; background:#00ff00; border:none; border-radius:8px; color:black; font-weight:bold; cursor:pointer;">В ЛОББИ</button>
                 `;
+
+                // Принудительно вешаем событие на кнопку после её создания
+                const btn = document.getElementById('exit-btn');
+                if (btn) {
+                    btn.onclick = () => exitToBot();
+                }
             }
-            // Рисуем финальное состояние карт
             renderFinalCards(data);
             return; 
         }
@@ -335,23 +354,4 @@ function renderFinalCards(data) {
             card.classList.remove('flipped');
         }
     });
-}
-async function exitToBot() {
-    console.log("Выход в бота...");
-    
-    // 1. Пытаемся отправить финальный статус на сервер (опционально)
-    try {
-        await apiCall('api', { 
-            action: 'game_finished', 
-            room_id: params.get('room_id'),
-            user_id: user?.id 
-        });
-    } catch(e) { 
-        console.log("Ошибка при выходе:", e); 
-    }
-
-    // 2. Закрываем приложение принудительно
-    if (window.Telegram && window.Telegram.WebApp) {
-        window.Telegram.WebApp.close();
-    }
 }
