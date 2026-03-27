@@ -160,7 +160,13 @@ function startMemoryGame() {
     screen.style.display = 'flex';
     grid.innerHTML = '';
     grid.style.opacity = '1';
-    
+    const data = await apiCall('api', { action: 'get_state', room_id: params.get('room_id'), user_id: user?.id });
+    data.board.forEach((emoji, idx) => {
+        const card = document.createElement('div');
+        card.className = 'card'; 
+        card.innerHTML = `<div class="card-front">${emoji}</div><div class="card-back"></div>`;
+        grid.appendChild(card);
+    });
     // Создаем карточки (пока закрытые)
     // Чтобы у обоих игроков были одинаковые карты, используем ID создателя как "ключ" перемешивания
     // (Возьмем его из параметров или сделаем временный рандом)
