@@ -335,3 +335,9 @@ function renderFinalCards(data) {
         }
     });
 }
+function exitToBot() {
+    // Отправляем боту сигнал, что игра окончена
+    tg.sendData(JSON.stringify({ action: "game_finished" })); 
+    // Закрываем Mini App
+    tg.close();
+}
