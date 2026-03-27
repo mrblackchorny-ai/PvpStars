@@ -336,9 +336,22 @@ function renderFinalCards(data) {
         }
     });
 }
-function exitToBot() {
-    // Отправляем боту сигнал, что игра окончена
-    tg.sendData(JSON.stringify({ action: "game_finished" })); 
-    // Закрываем Mini App
-    tg.close();
+async function exitToBot() {
+    console.log("Выход в бота...");
+    
+    // 1. Пытаемся отправить финальный статус на сервер (опционально)
+    try {
+        await apiCall('api', { 
+            action: 'game_finished', 
+            room_id: params.get('room_id'),
+            user_id: user?.id 
+        });
+    } catch(e) { 
+        console.log("Ошибка при выходе:", e); 
+    }
+
+    // 2. Закрываем приложение принудительно
+    if (window.Telegram && window.Telegram.WebApp) {
+        window.Telegram.WebApp.close();
+    }
 }
