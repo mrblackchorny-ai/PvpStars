@@ -4,6 +4,11 @@ const tg = window.Telegram.WebApp;
 tg.ready();
 tg.expand();
 
+// Временный чит для тестов
+if (params.get('test') === '1') {
+    console.log("🛠 Режим тестирования активирован");
+    startMemoryGame(); 
+}
 // --- ИНИЦИАЛИЗАЦИЯ ДАННЫХ ---
 const user = tg.initDataUnsafe?.user;
 if (user) {
@@ -214,21 +219,24 @@ function startMemoryGame() {
     });
 }
 
-// Вспомогательная функция для таймеров (чтобы не дублировать код)
-function runUniversalTimer(seconds, callback) {
-    let timeLeft = seconds;
-    const bar = document.getElementById('timer-bar');
+// ... внутри фазы 2 (Запоминание) ...
+runUniversalTimer(10, () => {
+    // --- ФАЗА 3: НАЧАЛО ИГРЫ (После 10 сек запоминания) ---
     
-    const timer = setInterval(() => {
-        timeLeft -= 0.1;
-        bar.style.width = (timeLeft / seconds) * 100 + "%";
-        
-        if (timeLeft <= 0) {
-            clearInterval(timer);
-            callback();
-        }
-    }, 100);
-}
+    // 1. Убираем класс flipped у всех карточек (они переворачиваются рубашкой вверх)
+    document.querySelectorAll('.card').forEach(card => {
+        card.classList.remove('flipped');
+    });
+
+    // 2. Меняем статус и разрешаем клики
+    status.innerText = "ТВОЙ ХОД! ИЩИ ПАРЫ";
+    status.style.color = "#ffffff";
+    canClick = true; 
+    
+    // Сбрасываем полоску таймера для самой игры (если хочешь ограничить время хода)
+    bar.style.width = "100%";
+    bar.style.backgroundColor = "#3498db"; 
+});
 
 // --- ФИНАЛ ИГРЫ (ИСПРАВЛЕНО) ---
 async function endGame(win) {
