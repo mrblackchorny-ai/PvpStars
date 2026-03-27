@@ -226,19 +226,14 @@ function setupCardLogic() {
     
     cards.forEach((card, index) => {
         card.onclick = async () => {
-            // БЛОКИРОВКИ:
-            // 1. Нельзя кликать, если не твой ход
-            // 2. Нельзя кликать на уже открытую карту
-            // 3. Нельзя открывать больше 2 карт за раз
-            if (!canClick || !isMyTurn || card.classList.contains('flipped') || serverFlipped.length >= 2) {
+            if (!isMyTurn || card.classList.contains('flipped') || serverFlipped.length >= 2) {
                 return;
             }
 
-            // Визуально открываем карту у себя сразу, чтобы не было задержки
             card.classList.add('flipped');
-            serverFlipped.push(index); // Временно добавляем локально
-
-            // Отправляем ход на твой Python-сервер
+            serverFlipped.push(index); 
+            
+            // ОСТАВЛЯЕМ ТОЛЬКО ОДИН ВЫЗОВ ТУТ:
             const response = await apiCall('api', {
                 action: 'make_move',
                 room_id: params.get('room_id'),
@@ -246,7 +241,6 @@ function setupCardLogic() {
                 index: index
             });
 
-            // Если сервер сказал, что ход недействителен (например, кто-то успел быстрее)
             if (!response || response.error) {
                 card.classList.remove('flipped');
                 serverFlipped = serverFlipped.filter(i => i !== index);
@@ -298,11 +292,17 @@ function startSync() {
         const cards = document.querySelectorAll('.card');
         
         cards.forEach((card, idx) => {
-            if (data.matched && data.matched.includes(idx)) {
+            const isMatched = data.matched && data.matched.includes(idx);
+            const isFlippedNow = data.flipped && data.flipped.includes(idx);
+
+            if (isMatched) {
+                // Если пара уже найдена — она открыта навсегда
                 card.classList.add('flipped', 'matched');
-            } else if (serverFlipped.includes(idx)) {
+            } else if (isFlippedNow) {
+                // Если это текущий ход (кто-то открыл карту прямо сейчас) — показываем
                 card.classList.add('flipped');
             } else {
+                // ВАЖНО: Если карты нет ни в matched, ни в flipped — ЗАКРЫВАЕМ её
                 card.classList.remove('flipped');
             }
         });
