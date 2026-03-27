@@ -54,15 +54,27 @@
         </div>
     </div>
 
-    <div id="game-screen" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#1a1a1a; z-index:2000; flex-direction:column;">
-        <div style="padding: 20px; text-align: center;">
-            <h2 id="game-status" style="color: white; margin: 0; font-size: 18px;">Запоминайте!</h2>
-            <div style="background: #333; height: 8px; width: 100%; margin-top: 15px; border-radius: 5px; overflow: hidden;">
-                <div id="timer-bar" style="background: #2ecc71; width: 100%; height: 100%; transition: width 0.1s linear;"></div>
-            </div>
+<div id="game-screen" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#1a1a1a; z-index:2000; flex-direction:column;">
+    <div style="padding: 20px; text-align: center;">
+        <h2 id="game-status" style="color: white; margin: 0; font-size: 18px;">Приготовьтесь...</h2>
+        <div style="background: #333; height: 8px; width: 100%; margin-top: 15px; border-radius: 5px; overflow: hidden;">
+            <div id="timer-bar" style="background: #ffcc00; width: 100%; height: 100%; transition: width 0.1s linear;"></div>
         </div>
-        <div class="memory-grid" id="memory-grid"></div>
     </div>
+
+    <div id="instruction-layer" style="position: absolute; top: 55%; left: 50%; transform: translate(-50%, -50%); width: 85%; text-align: center; z-index: 2100; background: rgba(0,0,0,0.9); padding: 20px; border-radius: 20px; border: 1px solid #ffcc00; display: none;">
+        <h2 style="color: #ffcc00; margin-bottom: 15px;">КАК ИГРАТЬ? 🧠</h2>
+        <div style="color: white; text-align: left; font-size: 14px; line-height: 1.6;">
+            <p style="color: white;">1️⃣ <b>ЗАПОМНИ:</b> У тебя 10 сек на просмотр пар.</p>
+            <p style="color: white;">2️⃣ <b>ХОДИ:</b> Нашел пару? +1 балл и <b>ХОДИШЬ СНОВА!</b></p>
+            <p style="color: white;">3️⃣ <b>ПОБЕДА:</b> Больше всех очков = Весь банк.</p>
+        </div>
+        <p style="color: #888; font-size: 12px; margin-top: 10px;">Комиссия арены: 20%</p>
+    </div>
+
+    <div class="memory-grid" id="memory-grid" style="opacity: 0; transition: opacity 0.5s;">
+        </div>
+</div>
 
     <div id="modal-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background-color: rgba(0,0,0,0.8); z-index:1000; justify-content:center; align-items:center;">
         <div style="background:#222; padding:25px; border-radius:20px; width:80%; text-align:center; border: 1px solid #444;">
