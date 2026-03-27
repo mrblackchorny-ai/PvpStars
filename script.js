@@ -16,6 +16,7 @@ let activeRooms = {};
 let isMyTurn = false;
 let canClick = false;
 let flippedCards = [];
+let serverFlipped = [];
 const emojis = ['🍎', '🍋', '💎', '⭐', '🍀', '🔥', '👻', '🐱'];
 
 // --- 2. ИНИЦИАЛИЗАЦИЯ ИНТЕРФЕЙСА ---
@@ -225,12 +226,35 @@ function startMemoryGame() {
 }
 
 function setupCardLogic() {
-    document.querySelectorAll('.card').forEach((card, index) => {
-        card.onclick = () => {
-            if (!canClick || !isMyTurn || card.classList.contains('flipped')) return;
-            
+    const cards = document.querySelectorAll('.card');
+    
+    cards.forEach((card, index) => {
+        card.onclick = async () => {
+            // БЛОКИРОВКИ:
+            // 1. Нельзя кликать, если не твой ход
+            // 2. Нельзя кликать на уже открытую карту
+            // 3. Нельзя открывать больше 2 карт за раз
+            if (!canClick || !isMyTurn || card.classList.contains('flipped') || serverFlipped.length >= 2) {
+                return;
+            }
+
+            // Визуально открываем карту у себя сразу, чтобы не было задержки
             card.classList.add('flipped');
-            // Тут будет запрос к твоему Python-серверу: apiCall('make_move', ...)
+            serverFlipped.push(index); // Временно добавляем локально
+
+            // Отправляем ход на твой Python-сервер
+            const response = await apiCall('api', {
+                action: 'make_move',
+                room_id: params.get('room_id'),
+                user_id: user?.id,
+                index: index
+            });
+
+            // Если сервер сказал, что ход недействителен (например, кто-то успел быстрее)
+            if (!response || response.error) {
+                card.classList.remove('flipped');
+                serverFlipped = serverFlipped.filter(i => i !== index);
+            }
         };
     });
 }
@@ -245,4 +269,42 @@ if (params.get('mode') === 'battle') {
 } else {
     setInterval(updateRoomsData, 5000);
     updateRoomsData();
+}
+function startSync() {
+    // Каждую секунду спрашиваем у сервера: "Как там дела на поле?"
+    setInterval(async () => {
+        const data = await apiCall('api', { action: 'get_state', room_id: params.get('room_id') });
+        if (!data) return;
+
+        // 1. Определяем, чей сейчас ход
+        isMyTurn = (data.current_turn == user?.id);
+
+        // 2. Обновляем счет на экране
+        document.getElementById('my-score').innerText = data.scores[user?.id] || 0;
+        const enemyId = Object.keys(data.scores).find(id => id != user?.id);
+        if (enemyId) document.getElementById('enemy-score').innerText = data.scores[enemyId] || 0;
+
+        // 3. Подсвечиваем панель того, кто сейчас ходит
+        document.getElementById('player1-box').style.opacity = isMyTurn ? "1" : "0.5";
+        document.getElementById('player2-box').style.opacity = isMyTurn ? "0.5" : "1";
+        document.getElementById('turn-text').innerText = isMyTurn ? "ТВОЙ ХОД!" : "ОЖИДАНИЕ ВРАГА...";
+
+        // 4. СИНХРОНИЗИРУЕМ КАРТЫ С СЕРВЕРОМ
+        serverFlipped = data.flipped; // Сохраняем, сколько карт сейчас открыто
+        const cards = document.querySelectorAll('.card');
+        
+        cards.forEach((card, idx) => {
+            if (data.matched.includes(idx)) {
+                // Если карта в списке найденных пар — она всегда открыта
+                card.classList.add('flipped', 'matched');
+            } else if (data.flipped.includes(idx)) {
+                // Если карту сейчас открыл враг — показываем её
+                card.classList.add('flipped');
+            } else {
+                // Иначе карта должна быть закрыта (рубашкой вверх)
+                card.classList.remove('flipped');
+            }
+        });
+
+    }, 1000); // Опрос каждую секунду
 }
