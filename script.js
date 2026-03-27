@@ -149,36 +149,58 @@ function joinRoom(roomId) {
 }
 
 function startMemoryGame() {
-    const gameScreen = document.getElementById('game-screen');
-    const lobbyScreen = document.getElementById('lobby-screen');
-    if (gameScreen) gameScreen.style.display = 'flex';
-    if (lobbyScreen) lobbyScreen.style.display = 'none';
+    console.log("Starting Memory Game...");
 
-    const grid = document.getElementById('memory-grid');
-    const status = document.getElementById('game-status');
-    const insLayer = document.getElementById('instruction-layer');
+    // 1. ПРОВЕРКА ЭЛЕМЕНТОВ (чтобы не было черного экрана)
+    const elements = {
+        grid: document.getElementById('memory-grid'),
+        status: document.getElementById('game-status'),
+        insLayer: document.getElementById('instruction-layer'),
+        gameScreen: document.getElementById('game-screen'),
+        lobbyScreen: document.getElementById('lobby-screen')
+    };
+
+    // Если главного экрана игры нет в HTML — выходим с ошибкой в консоль
+    if (!elements.gameScreen) {
+        console.error("Критическая ошибка: Элемент 'game-screen' не найден в HTML!");
+        return;
+    }
+
+    // Показываем игру, скрываем лобби
+    elements.gameScreen.style.display = 'flex';
+    if (elements.lobbyScreen) elements.lobbyScreen.style.display = 'none';
     
-    if (!grid) return;
-    grid.innerHTML = '';
+    const bottomNav = document.querySelector('.bottom-nav');
+    if (bottomNav) bottomNav.style.display = 'none';
+
+    if (elements.grid) {
+        elements.grid.innerHTML = '';
+        elements.grid.style.opacity = '1';
+    }
+    
     canClick = false;
 
+    // 2. ГЕНЕРАЦИЯ КАРТОЧЕК
     let gameCards = [...emojis, ...emojis].sort(() => Math.random() - 0.5);
 
     gameCards.forEach((emoji) => {
         const card = document.createElement('div');
-        card.className = 'card flipped';
+        card.className = 'card flipped'; // Сразу открыты
         card.innerHTML = `<div class="card-front">${emoji}</div><div class="card-back"></div>`;
         
         card.onclick = () => {
             if (!canClick || !isMyTurn || card.classList.contains('matched') || card.classList.contains('flipped')) return;
+            
             card.classList.add('flipped');
             flippedCards.push(card);
+            
+            const cardIndex = Array.from(elements.grid.children).indexOf(card);
             
             apiCall('api', {
                 action: 'make_move',
                 room_id: params.get('room_id'),
                 user_id: user?.id,
-                index: Array.from(grid.children).indexOf(card)
+                index: cardIndex
             }).then(response => {
                 if (response?.result === 'mismatch') {
                     isMyTurn = false;
@@ -192,18 +214,24 @@ function startMemoryGame() {
                 }
             });
         };
-        grid.appendChild(card);
+        if (elements.grid) elements.grid.appendChild(card);
     });
 
-    if (insLayer) insLayer.style.display = 'block';
-    status.innerText = "ЗАПОМИНАЙ!";
+    // 3. ЦИКЛ ТАЙМЕРОВ С ПРОВЕРКОЙ
+    if (elements.status) elements.status.innerText = "ЗАПОМИНАЙ!";
+    if (elements.insLayer) elements.insLayer.style.display = 'block';
 
+    // Используем обычный setTimeout, если runUniversalTimer глючит из-за отсутствия полоски
     setTimeout(() => {
-        if (insLayer) insLayer.style.display = 'none';
+        if (elements.insLayer) elements.insLayer.style.display = 'none';
+        if (elements.status) elements.status.innerText = "ИГРА НАЧАЛАСЬ!";
+        
+        // Переворачиваем карты рубашкой вверх
         document.querySelectorAll('.card').forEach(c => c.classList.remove('flipped'));
+        
         canClick = true;
-        status.innerText = "ТВОЙ ХОД?";
-    }, 5000);
+        console.log("Game started, cards hidden, clicks enabled.");
+    }, 10000); // 10 секунд на запоминание
 }
 
 // --- 6. ЗАПУСК ---
