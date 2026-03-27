@@ -137,32 +137,44 @@ if (params.get('mode') === 'battle') {
     startMemoryGame();
 }
 
+// --- ОБНОВЛЕННАЯ ЛОГИКА ИГРЫ (2 ЭТАПА ПО 10 СЕКУНД) ---
 function startMemoryGame() {
+    // 1. Подготовка экрана
     document.getElementById('lobby-screen').style.display = 'none';
     document.getElementById('game-screen').style.display = 'flex';
     document.querySelector('.bottom-nav').style.display = 'none';
     
     const grid = document.getElementById('memory-grid');
+    const status = document.getElementById('game-status');
+    const bar = document.getElementById('timer-bar');
+    
     grid.innerHTML = '';
-    
+    grid.style.opacity = '0'; // Скрываем сетку на время инструкции
+    canClick = false;
+
+    // Создаем карточки заранее
     let gameCards = [...emojis, ...emojis].sort(() => Math.random() - 0.5);
-    
     gameCards.forEach((emoji) => {
         const card = document.createElement('div');
-        card.className = 'card flipped';
+        card.className = 'card flipped'; // Изначально открыты
         card.innerHTML = `<div class="card-front">${emoji}</div><div class="card-back"></div>`;
         card.dataset.emoji = emoji;
         
+        // Логика клика (оставляем твою рабочую)
         card.onclick = () => {
-            if (!canClick || card.classList.contains('flipped') || flippedCards.length >= 2) return;
+            if (!canClick || card.classList.contains('matched') || flippedCards.length >= 2) return;
+            if (flippedCards.includes(card)) return;
+
             card.classList.add('flipped');
             flippedCards.push(card);
+
             if (flippedCards.length === 2) {
                 canClick = false;
                 if (flippedCards[0].dataset.emoji === flippedCards[1].dataset.emoji) {
+                    flippedCards.forEach(c => c.classList.add('matched'));
                     flippedCards = []; 
                     canClick = true;
-                    if (document.querySelectorAll('.card.flipped').length === 16) {
+                    if (document.querySelectorAll('.matched').length === 16) {
                         setTimeout(() => endGame(true), 500);
                     }
                 } else {
@@ -177,16 +189,43 @@ function startMemoryGame() {
         grid.appendChild(card);
     });
 
-    let timeLeft = 10;
+    // --- ФАЗА 1: ИНСТРУКЦИЯ (10 секунд) ---
+    status.innerText = "ПРАВИЛА ИГРЫ 🧠";
+    bar.style.backgroundColor = "#ffcc00"; // Желтый для инструкции
+    
+    // Показываем твой блок инструкции (добавь его в HTML, как мы обсуждали)
+    const insLayer = document.getElementById('instruction-layer');
+    if(insLayer) insLayer.style.display = 'block';
+
+    runUniversalTimer(10, () => {
+        // --- ФАЗА 2: ЗАПОМИНАНИЕ (10 секунд) ---
+        if(insLayer) insLayer.style.display = 'none';
+        grid.style.opacity = '1';
+        status.innerText = "ЗАПОМИНАЙ КАРТОЧКИ!";
+        bar.style.backgroundColor = "#2ecc71"; // Зеленый для запоминания
+
+        runUniversalTimer(10, () => {
+            // --- ФАЗА 3: НАЧАЛО ИГРЫ ---
+            document.querySelectorAll('.card').forEach(c => c.classList.remove('flipped'));
+            status.innerText = "ТВОЙ ХОД! ИЩИ ПАРЫ";
+            status.style.color = "white";
+            canClick = true;
+        });
+    });
+}
+
+// Вспомогательная функция для таймеров (чтобы не дублировать код)
+function runUniversalTimer(seconds, callback) {
+    let timeLeft = seconds;
     const bar = document.getElementById('timer-bar');
+    
     const timer = setInterval(() => {
         timeLeft -= 0.1;
-        bar.style.width = (timeLeft / 10) * 100 + "%";
+        bar.style.width = (timeLeft / seconds) * 100 + "%";
+        
         if (timeLeft <= 0) {
             clearInterval(timer);
-            document.querySelectorAll('.card').forEach(c => c.classList.remove('flipped'));
-            document.getElementById('game-status').innerText = "Ваш ход! Найдите пары";
-            canClick = true;
+            callback();
         }
     }, 100);
 }
