@@ -16,6 +16,11 @@ let currentBalance = parseInt(params.get('bal')) || 0;
 document.getElementById('balance_val').innerText = currentBalance;
 
 let activeRooms = {};
+let isMyTurn = false;
+let myPoints = 0;
+let enemyPoints = 0;
+let lastUpdateHash = ""; // Чтобы не перерисовывать, если ничего не изменилось
+
 
 // Вспомогательная функция для запросов к API
 async function apiCall(endpoint, paramsObj) {
@@ -165,29 +170,41 @@ function startMemoryGame() {
         card.dataset.emoji = emoji;
         
         card.onclick = () => {
-            if (!canClick || card.classList.contains('matched') || card.classList.contains('flipped') || flippedCards.length >= 2) return;
+    // 1. ПРОВЕРКИ: Можно ли кликать? Твой ли сейчас ход?
+    if (!canClick || !isMyTurn || card.classList.contains('matched') || card.classList.contains('flipped')) return;
 
-            card.classList.add('flipped');
-            flippedCards.push(card);
+    // 2. ВИЗУАЛ: Сразу переворачиваем карту, чтобы не ждать ответа сервера (так приятнее играть)
+    card.classList.add('flipped');
+    flippedCards.push(card);
 
-            if (flippedCards.length === 2) {
-                canClick = false;
-                if (flippedCards[0].dataset.emoji === flippedCards[1].dataset.emoji) {
-                    flippedCards.forEach(c => c.classList.add('matched'));
-                    flippedCards = []; 
-                    canClick = true;
-                    if (document.querySelectorAll('.matched').length === 16) {
-                        setTimeout(() => endGame(true), 500);
-                    }
-                } else {
-                    setTimeout(() => {
-                        flippedCards.forEach(c => c.classList.remove('flipped'));
-                        flippedCards = [];
-                        canClick = true;
-                    }, 600);
-                }
-            }
-        };
+    // 3. СЕТЕВАЯ ЧАСТЬ: Сообщаем серверу, какую карту мы открыли
+    // Нам нужно знать индекс карты (от 0 до 15)
+    const cardIndex = Array.from(grid.children).indexOf(card);
+    
+    apiCall('api', {
+        action: 'make_move',
+        room_id: params.get('room_id'),
+        user_id: user.id,
+        index: cardIndex
+    }).then(response => {
+        // Если сервер говорит, что пара НЕ совпала
+        if (response && response.result === 'mismatch') {
+            isMyTurn = false; // Ход переходит к врагу
+            setTimeout(() => {
+                flippedCards.forEach(c => c.classList.remove('flipped'));
+                flippedCards = [];
+                canClick = true;
+            }, 1000);
+        } 
+        // Если совпала
+        else if (response && response.result === 'match') {
+            flippedCards.forEach(c => c.classList.add('matched'));
+            flippedCards = [];
+            canClick = true;
+            // Ход остается твоим!
+        }
+    });
+};
         grid.appendChild(card);
     });
 
@@ -206,29 +223,24 @@ function startMemoryGame() {
         bar.style.backgroundColor = "#2ecc71";
 
         runUniversalTimer(10, () => {
-            // ФАЗА 3: ИГРА
+            // ФАЗА 3: ИГРА НАЧАЛАСЬ
             document.querySelectorAll('.card').forEach(c => c.classList.remove('flipped'));
-            status.innerText = "ТВОЙ ХОД! ИЩИ ПАРЫ";
-            status.style.color = "white";
-            bar.style.backgroundColor = "#3498db";
-            canClick = true;
+            
+            canClick = true; 
+            syncGameState(); // Сразу спрашиваем сервер, чей ход первый
+            
+            // Если статус или бар пропали, эти строки могут выдать ошибку, 
+            // так что убедись, что переменные status и bar доступны внутри этого колбэка.
+            if (status) {
+                status.style.color = "white";
+            }
+            if (bar) {
+                bar.style.backgroundColor = "#3498db";
+            }
         });
     });
 }
 
-// Убедись, что эта функция у тебя есть в коде (для работы полоски)
-function runUniversalTimer(seconds, callback) {
-    let timeLeft = seconds;
-    const bar = document.getElementById('timer-bar');
-    const interval = setInterval(() => {
-        timeLeft -= 0.1;
-        if (bar) bar.style.width = (timeLeft / seconds) * 100 + "%";
-        if (timeLeft <= 0) {
-            clearInterval(interval);
-            callback();
-        }
-    }, 100);
-}
 // --- ФИНАЛ ИГРЫ (ИСПРАВЛЕНО) ---
 async function endGame(win) {
     const bet = params.get('bet') || 0;
@@ -246,4 +258,77 @@ async function endGame(win) {
         });
         tg.close();
     });
+}
+async function syncGameState() {
+    if (params.get('mode') !== 'battle') return;
+
+    const data = await apiCall('api', {
+        action: 'get_state',
+        room_id: params.get('room_id')
+    });
+
+    if (!data) return;
+
+    // 1. Кто сейчас ходит?
+    isMyTurn = (data.current_turn === user.id);
+    updateTurnUI();
+
+    // 2. Какие карты открыл противник?
+    data.opened_cards.forEach(idx => {
+        const card = document.querySelectorAll('.card')[idx];
+        if (!card.classList.contains('flipped')) {
+            card.classList.add('flipped');
+        }
+    });
+
+    // 3. Обновляем счет
+    document.getElementById('my-score').innerText = data.scores[user.id] || 0;
+    // Находим ID врага (он не равен твоему)
+    const enemyId = Object.keys(data.scores).find(id => id != user.id);
+    document.getElementById('enemy-score').innerText = data.scores[enemyId] || 0;
+}
+
+// Запускаем опрос только в бою
+if (params.get('mode') === 'battle') {
+    setInterval(syncGameState, 1500); 
+}
+
+function updateTurnUI() {
+    const status = document.getElementById('game-status');
+    const p1Box = document.getElementById('player1-box');
+    const p2Box = document.getElementById('player2-box');
+
+    if (isMyTurn) {
+        status.innerText = "ТВОЙ ХОД!";
+        p1Box.style.opacity = "1";
+        p1Box.style.borderBottom = "3px solid #3498db";
+        p2Box.style.opacity = "0.5";
+        p2Box.style.borderBottom = "none";
+    } else {
+        status.innerText = "ОЖИДАНИЕ ВРАГА...";
+        p1Box.style.opacity = "0.5";
+        p1Box.style.borderBottom = "none";
+        p2Box.style.opacity = "1";
+        p2Box.style.borderBottom = "3px solid #e74c3c";
+    }
+}
+// Функция для работы таймера и полоски
+function runUniversalTimer(seconds, callback) {
+    let timeLeft = seconds;
+    const bar = document.getElementById('timer-bar');
+    
+    // Сбрасываем полоску на 100% в начале
+    if (bar) bar.style.width = "100%";
+
+    const interval = setInterval(() => {
+        timeLeft -= 0.1;
+        if (bar) {
+            bar.style.width = (timeLeft / seconds) * 100 + "%";
+        }
+
+        if (timeLeft <= 0) {
+            clearInterval(interval);
+            callback(); // Выполняем действие по окончании времени
+        }
+    }, 100);
 }
