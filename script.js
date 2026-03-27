@@ -149,7 +149,7 @@ function joinRoom(roomId) {
     tg.close();
 }
 
-function startMemoryGame() {
+async function startMemoryGame() {
     const grid = document.getElementById('memory-grid');
     const timerBar = document.getElementById('timer-bar');
     const status = document.getElementById('game-status');
@@ -162,17 +162,6 @@ function startMemoryGame() {
     grid.style.opacity = '1';
     const data = await apiCall('api', { action: 'get_state', room_id: params.get('room_id'), user_id: user?.id });
     data.board.forEach((emoji, idx) => {
-        const card = document.createElement('div');
-        card.className = 'card'; 
-        card.innerHTML = `<div class="card-front">${emoji}</div><div class="card-back"></div>`;
-        grid.appendChild(card);
-    });
-    // Создаем карточки (пока закрытые)
-    // Чтобы у обоих игроков были одинаковые карты, используем ID создателя как "ключ" перемешивания
-    // (Возьмем его из параметров или сделаем временный рандом)
-    let cardsData = [...emojis, ...emojis].sort(() => 0.5 - Math.random());
-
-    cardsData.forEach((emoji, idx) => {
         const card = document.createElement('div');
         card.className = 'card'; 
         card.innerHTML = `<div class="card-front">${emoji}</div><div class="card-back"></div>`;
@@ -228,6 +217,7 @@ function startMemoryGame() {
         
         // Активируем клики по картам
         setupCardLogic();
+        startSync();
     }
 }
 
