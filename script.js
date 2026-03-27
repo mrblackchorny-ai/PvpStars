@@ -4,24 +4,23 @@ const tg = window.Telegram.WebApp;
 tg.ready();
 tg.expand();
 
-// --- 1. ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ (ОБЪЯВЛЯЕМ В САМОМ НАЧАЛЕ) ---
+// --- 1. ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ---
 const params = new URLSearchParams(window.location.search);
 const user = tg.initDataUnsafe?.user;
 
-// Баланс: приоритет на параметр от бота (start_param), потом на ссылку
-let rawBal = tg.initDataUnsafe?.start_param || params.get('bal');
+// Пробуем достать баланс отовсюду
+let rawBal = params.get('bal') || tg.initDataUnsafe?.start_param;
 let currentBalance = parseInt(rawBal) || 0;
 
 let activeRooms = {};
 let isMyTurn = false;
-let myPoints = 0;
-let enemyPoints = 0;
-let flippedCards = [];
 let canClick = false;
+let flippedCards = [];
 const emojis = ['🍎', '🍋', '💎', '⭐', '🍀', '🔥', '👻', '🐱'];
 
 // --- 2. ИНИЦИАЛИЗАЦИЯ ИНТЕРФЕЙСА ---
 function initUI() {
+    console.log("UI Initializing...");
     if (user) {
         const nameEl = document.getElementById('username');
         const idEl = document.getElementById('user_id');
@@ -32,10 +31,61 @@ function initUI() {
     if (balEl) balEl.innerText = currentBalance;
 }
 
-// Запускаем отрисовку данных пользователя сразу
-document.addEventListener('DOMContentLoaded', initUI);
+// Ждем загрузку DOM
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initUI);
+} else {
+    initUI();
+}
 
-// --- 3. ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ---
+// --- 3. НАВИГАЦИЯ И ОКНА (ТО ЧТО НЕ ОТКРЫВАЛОСЬ) ---
+let selectedGame = "";
+
+function openGameLobby(gameName) {
+    console.log("Opening lobby for:", gameName);
+    selectedGame = gameName;
+    
+    const lobbyTitle = document.getElementById('lobby-title');
+    const lobbyScreen = document.getElementById('lobby-screen');
+    const bottomNav = document.querySelector('.bottom-nav');
+
+    if (lobbyTitle) lobbyTitle.innerText = gameName;
+    if (lobbyScreen) lobbyScreen.style.display = 'block';
+    if (bottomNav) bottomNav.style.display = 'none';
+    
+    updateRoomsData(); // Сразу обновляем список комнат
+}
+
+function closeGameLobby() {
+    const lobbyScreen = document.getElementById('lobby-screen');
+    const bottomNav = document.querySelector('.bottom-nav');
+    
+    if (lobbyScreen) lobbyScreen.style.display = 'none';
+    if (bottomNav) bottomNav.style.display = 'flex';
+}
+
+function openCreateModal() {
+    const modal = document.getElementById('modal-overlay');
+    if (modal) modal.style.display = 'flex';
+}
+
+function closeCreateModal() {
+    const modal = document.getElementById('modal-overlay');
+    if (modal) modal.style.display = 'none';
+}
+
+function switchTab(tabId, element) {
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    
+    const targetTab = document.getElementById(tabId);
+    if (targetTab) targetTab.classList.add('active');
+    if (element) element.classList.add('active');
+    
+    tg.HapticFeedback.impactOccurred('light');
+}
+
+// --- 4. РАБОТА С СЕРВЕРОМ (API) ---
 async function apiCall(endpoint, paramsObj) {
     const query = new URLSearchParams(paramsObj).toString();
     try {
@@ -47,25 +97,9 @@ async function apiCall(endpoint, paramsObj) {
     }
 }
 
-function runUniversalTimer(seconds, callback) {
-    let timeLeft = seconds;
-    const bar = document.getElementById('timer-bar');
-    if (bar) bar.style.width = "100%";
-    const interval = setInterval(() => {
-        timeLeft -= 0.1;
-        if (bar) bar.style.width = (timeLeft / seconds) * 100 + "%";
-        if (timeLeft <= 0) {
-            clearInterval(interval);
-            callback();
-        }
-    }, 100);
-}
-
-// --- 4. СИСТЕМА КОМНАТ ---
 async function updateRoomsData() {
     try {
         const response = await fetch(`${API_URL}/rooms?t=${Date.now()}`);
-        if (!response.ok) throw new Error('Ошибка сервера');
         activeRooms = await response.json();
         renderRooms(); 
     } catch (e) {
@@ -76,8 +110,10 @@ async function updateRoomsData() {
 function renderRooms() {
     const container = document.getElementById('rooms-container');
     if (!container) return;
+    
     container.innerHTML = "";
     let hasRooms = false;
+
     Object.keys(activeRooms).forEach(id => {
         const room = activeRooms[id];
         if (room.status === "waiting") {
@@ -94,11 +130,13 @@ function renderRooms() {
             container.appendChild(card);
         }
     });
+
     if (!hasRooms) {
-        container.innerHTML = `<div style="text-align:center; color:rgba(255,255,255,0.5); margin-top:50px;"><p>Пока нет активных игр.</p></div>`;
+        container.innerHTML = `<div style="text-align:center; color:gray; margin-top:20px;">Пока нет игр. Создай свою!</div>`;
     }
 }
 
+// --- 5. ЛОГИКА ИГРЫ ---
 function createRoom(bet) {
     if (currentBalance < bet) return tg.showAlert("Недостаточно звёзд!");
     tg.sendData(JSON.stringify({ action: "create_room", bet: parseInt(bet) }));
@@ -110,18 +148,18 @@ function joinRoom(roomId) {
     tg.close();
 }
 
-// --- 5. ЛОГИКА ИГРЫ MEMORY ---
 function startMemoryGame() {
-    document.getElementById('lobby-screen').style.display = 'none';
-    document.getElementById('game-screen').style.display = 'flex';
-    document.querySelector('.bottom-nav').style.display = 'none';
-    
+    const gameScreen = document.getElementById('game-screen');
+    const lobbyScreen = document.getElementById('lobby-screen');
+    if (gameScreen) gameScreen.style.display = 'flex';
+    if (lobbyScreen) lobbyScreen.style.display = 'none';
+
     const grid = document.getElementById('memory-grid');
     const status = document.getElementById('game-status');
     const insLayer = document.getElementById('instruction-layer');
     
+    if (!grid) return;
     grid.innerHTML = '';
-    grid.style.opacity = '1';
     canClick = false;
 
     let gameCards = [...emojis, ...emojis].sort(() => Math.random() - 0.5);
@@ -135,13 +173,12 @@ function startMemoryGame() {
             if (!canClick || !isMyTurn || card.classList.contains('matched') || card.classList.contains('flipped')) return;
             card.classList.add('flipped');
             flippedCards.push(card);
-            const cardIndex = Array.from(grid.children).indexOf(card);
             
             apiCall('api', {
                 action: 'make_move',
                 room_id: params.get('room_id'),
                 user_id: user?.id,
-                index: cardIndex
+                index: Array.from(grid.children).indexOf(card)
             }).then(response => {
                 if (response?.result === 'mismatch') {
                     isMyTurn = false;
@@ -158,101 +195,25 @@ function startMemoryGame() {
         grid.appendChild(card);
     });
 
-    status.innerText = "ПРАВИЛА ИГРЫ 🧠";
     if (insLayer) insLayer.style.display = 'block';
+    status.innerText = "ЗАПОМИНАЙ!";
 
-    runUniversalTimer(5, () => {
+    setTimeout(() => {
         if (insLayer) insLayer.style.display = 'none';
-        status.innerText = "ЗАПОМИНАЙ КАРТЫ! 👀";
-        runUniversalTimer(7, () => {
-            status.innerText = "БОЙ НАЧАЛСЯ!";
-            document.querySelectorAll('.card').forEach(c => c.classList.remove('flipped'));
-            canClick = true; 
-        });
-    });
+        document.querySelectorAll('.card').forEach(c => c.classList.remove('flipped'));
+        canClick = true;
+        status.innerText = "ТВОЙ ХОД?";
+    }, 5000);
 }
 
-async function syncGameState() {
-    if (params.get('mode') !== 'battle') return;
-    const data = await apiCall('api', { action: 'get_state', room_id: params.get('room_id') });
-    if (!data) return;
-
-    isMyTurn = (data.current_turn == user?.id);
-    updateTurnUI(data);
-
-    if (data.opened_cards) {
-        const cards = document.querySelectorAll('.card');
-        data.opened_cards.forEach(idx => {
-            if (cards[idx] && !cards[idx].classList.contains('flipped')) {
-                cards[idx].classList.add('flipped');
-            }
-        });
-    }
-
-    const myScoreEl = document.getElementById('my-score');
-    const enemyScoreEl = document.getElementById('enemy-score');
-    if (myScoreEl) myScoreEl.innerText = data.scores[user?.id] || 0;
-    const enemyId = Object.keys(data.scores).find(id => id != user?.id);
-    if (enemyScoreEl && enemyId) enemyScoreEl.innerText = data.scores[enemyId] || 0;
-}
-
-function updateTurnUI(data) {
-    const turnText = document.getElementById('turn-text');
-    let activeName = (data.current_turn == user?.id) ? user.first_name + " (ВЫ)" : (data.current_turn_name || "Противник");
-    if (turnText) {
-        turnText.innerText = `ХОДИТ: ${activeName}`;
-        turnText.style.color = (data.current_turn == user?.id) ? "#3498db" : "#e74c3c";
-    }
-}
-
-// --- 6. ЗАПУСК ПРОЦЕССОВ ---
+// --- 6. ЗАПУСК ---
 if (params.get('mode') === 'battle') {
     startMemoryGame();
-    setInterval(syncGameState, 1500);
+    setInterval(async () => {
+        const data = await apiCall('api', { action: 'get_state', room_id: params.get('room_id') });
+        if (data) isMyTurn = (data.current_turn == user?.id);
+    }, 2000);
 } else {
-    updateRoomsData();
     setInterval(updateRoomsData, 5000);
-}
-
-function switchTab(tabId, element) {
-    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-    document.getElementById(tabId).classList.add('active');
-    element.classList.add('active');
-    tg.HapticFeedback.impactOccurred('light');
-}
-// --- ДОПОЛНИТЕЛЬНЫЕ ФУНКЦИИ ИНТЕРФЕЙСА (ДОБАВЬ В КОНЕЦ) ---
-
-let selectedGame = "";
-
-function openGameLobby(gameName) {
-    selectedGame = gameName;
-    const titleEl = document.getElementById('lobby-title');
-    const lobbyEl = document.getElementById('lobby-screen');
-    const navEl = document.querySelector('.bottom-nav');
-    
-    if (titleEl) titleEl.innerText = gameName;
-    if (lobbyEl) lobbyEl.style.display = 'block';
-    if (navEl) navEl.style.display = 'none';
-    
-    renderRooms();
-}
-
-function closeGameLobby() {
-    const lobbyEl = document.getElementById('lobby-screen');
-    const navEl = document.querySelector('.bottom-nav');
-    
-    if (lobbyEl) lobbyEl.style.display = 'none';
-    if (navEl) navEl.style.display = 'flex';
-}
-
-// Функции для модального окна создания комнаты
-function openCreateModal() { 
-    const modal = document.getElementById('modal-overlay');
-    if (modal) modal.style.display = 'flex'; 
-}
-
-function closeCreateModal() { 
-    const modal = document.getElementById('modal-overlay');
-    if (modal) modal.style.display = 'none'; 
+    updateRoomsData();
 }
