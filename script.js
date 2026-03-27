@@ -138,8 +138,8 @@ if (params.get('mode') === 'battle') {
 }
 
 // --- ОБНОВЛЕННАЯ ЛОГИКА ИГРЫ (2 ЭТАПА ПО 10 СЕКУНД) ---
+// Вставь эту функцию вместо старой startMemoryGame и удали дубликаты таймеров под ней
 function startMemoryGame() {
-    // 1. Подготовка экрана
     document.getElementById('lobby-screen').style.display = 'none';
     document.getElementById('game-screen').style.display = 'flex';
     document.querySelector('.bottom-nav').style.display = 'none';
@@ -147,23 +147,25 @@ function startMemoryGame() {
     const grid = document.getElementById('memory-grid');
     const status = document.getElementById('game-status');
     const bar = document.getElementById('timer-bar');
+    const insLayer = document.getElementById('instruction-layer');
     
     grid.innerHTML = '';
-    grid.style.opacity = '0'; // Скрываем сетку на время инструкции
+    grid.style.opacity = '0';
     canClick = false;
 
-    // Создаем карточки заранее
     let gameCards = [...emojis, ...emojis].sort(() => Math.random() - 0.5);
+
     gameCards.forEach((emoji) => {
         const card = document.createElement('div');
-        card.className = 'card flipped'; // Изначально открыты
-        card.innerHTML = `<div class="card-front">${emoji}</div><div class="card-back"></div>`;
+        card.className = 'card flipped'; // Начинаем с открытых (для фазы запоминания)
+        card.innerHTML = `
+            <div class="card-front">${emoji}</div>
+            <div class="card-back"></div>
+        `;
         card.dataset.emoji = emoji;
         
-        // Логика клика (оставляем твою рабочую)
         card.onclick = () => {
-            if (!canClick || card.classList.contains('matched') || flippedCards.length >= 2) return;
-            if (flippedCards.includes(card)) return;
+            if (!canClick || card.classList.contains('matched') || card.classList.contains('flipped') || flippedCards.length >= 2) return;
 
             card.classList.add('flipped');
             flippedCards.push(card);
@@ -189,45 +191,44 @@ function startMemoryGame() {
         grid.appendChild(card);
     });
 
-    // --- ФАЗА 1: ИНСТРУКЦИЯ (10 секунд) ---
-    status.innerText = "ПРАВИЛА ИГРЫ 🧠";
-    bar.style.backgroundColor = "#ffcc00"; // Желтый для инструкции
+    // --- ТРЕХФАЗНЫЙ ЦИКЛ ИГРЫ ---
     
-    // Показываем твой блок инструкции (добавь его в HTML, как мы обсуждали)
-    const insLayer = document.getElementById('instruction-layer');
+    // ФАЗА 1: ИНСТРУКЦИЯ (10 сек)
+    status.innerText = "ПРАВИЛА ИГРЫ 🧠";
+    bar.style.backgroundColor = "#ffcc00";
     if(insLayer) insLayer.style.display = 'block';
 
-runUniversalTimer(10, () => {
-    // --- ФАЗА 3: НАЧАЛО ИГРЫ ---
-    // Раньше мы просто скрывали карточки (удаляли класс flipped или добавляли back)
-    document.querySelectorAll('.card').forEach(card => {
-        card.classList.remove('flipped');
-    });
+    runUniversalTimer(10, () => {
+        // ФАЗА 2: ЗАПОМИНАНИЕ (10 сек)
+        if(insLayer) insLayer.style.display = 'none';
+        grid.style.opacity = '1';
+        status.innerText = "ЗАПОМИНАЙ КАРТОЧКИ!";
+        bar.style.backgroundColor = "#2ecc71";
 
-    status.innerText = "ТВОЙ ХОД! ИЩИ ПАРЫ";
-    canClick = true; 
-});
+        runUniversalTimer(10, () => {
+            // ФАЗА 3: ИГРА
+            document.querySelectorAll('.card').forEach(c => c.classList.remove('flipped'));
+            status.innerText = "ТВОЙ ХОД! ИЩИ ПАРЫ";
+            status.style.color = "white";
+            bar.style.backgroundColor = "#3498db";
+            canClick = true;
+        });
+    });
 }
 
-// ... внутри фазы 2 (Запоминание) ...
-runUniversalTimer(10, () => {
-    // --- ФАЗА 3: НАЧАЛО ИГРЫ (После 10 сек запоминания) ---
-    
-    // 1. Убираем класс flipped у всех карточек (они переворачиваются рубашкой вверх)
-    document.querySelectorAll('.card').forEach(card => {
-        card.classList.remove('flipped');
-    });
-
-    // 2. Меняем статус и разрешаем клики
-    status.innerText = "ТВОЙ ХОД! ИЩИ ПАРЫ";
-    status.style.color = "#ffffff";
-    canClick = true; 
-    
-    // Сбрасываем полоску таймера для самой игры (если хочешь ограничить время хода)
-    bar.style.width = "100%";
-    bar.style.backgroundColor = "#3498db"; 
-});
-
+// Убедись, что эта функция у тебя есть в коде (для работы полоски)
+function runUniversalTimer(seconds, callback) {
+    let timeLeft = seconds;
+    const bar = document.getElementById('timer-bar');
+    const interval = setInterval(() => {
+        timeLeft -= 0.1;
+        if (bar) bar.style.width = (timeLeft / seconds) * 100 + "%";
+        if (timeLeft <= 0) {
+            clearInterval(interval);
+            callback();
+        }
+    }, 100);
+}
 // --- ФИНАЛ ИГРЫ (ИСПРАВЛЕНО) ---
 async function endGame(win) {
     const bet = params.get('bet') || 0;
