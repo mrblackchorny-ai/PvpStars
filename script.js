@@ -149,89 +149,90 @@ function joinRoom(roomId) {
 }
 
 function startMemoryGame() {
-    console.log("Starting Memory Game...");
+    const grid = document.getElementById('memory-grid');
+    const timerBar = document.getElementById('timer-bar');
+    const status = document.getElementById('game-status');
+    const instruction = document.getElementById('instruction-layer');
+    const screen = document.getElementById('game-screen');
 
-    // 1. ПРОВЕРКА ЭЛЕМЕНТОВ (чтобы не было черного экрана)
-    const elements = {
-        grid: document.getElementById('memory-grid'),
-        status: document.getElementById('game-status'),
-        insLayer: document.getElementById('instruction-layer'),
-        gameScreen: document.getElementById('game-screen'),
-        lobbyScreen: document.getElementById('lobby-screen')
-    };
-
-    // Если главного экрана игры нет в HTML — выходим с ошибкой в консоль
-    if (!elements.gameScreen) {
-        console.error("Критическая ошибка: Элемент 'game-screen' не найден в HTML!");
-        return;
-    }
-
-    // Показываем игру, скрываем лобби
-    elements.gameScreen.style.display = 'flex';
-    if (elements.lobbyScreen) elements.lobbyScreen.style.display = 'none';
+    // Показываем экран игры и сбрасываем сетку
+    screen.style.display = 'flex';
+    grid.innerHTML = '';
+    grid.style.opacity = '1';
     
-    const bottomNav = document.querySelector('.bottom-nav');
-    if (bottomNav) bottomNav.style.display = 'none';
+    // Создаем карточки (пока закрытые)
+    // Чтобы у обоих игроков были одинаковые карты, используем ID создателя как "ключ" перемешивания
+    // (Возьмем его из параметров или сделаем временный рандом)
+    let cardsData = [...emojis, ...emojis].sort(() => 0.5 - Math.random());
 
-    if (elements.grid) {
-        elements.grid.innerHTML = '';
-        elements.grid.style.opacity = '1';
-    }
-    
-    canClick = false;
-
-    // 2. ГЕНЕРАЦИЯ КАРТОЧЕК
-    let gameCards = [...emojis, ...emojis].sort(() => Math.random() - 0.5);
-
-    gameCards.forEach((emoji) => {
+    cardsData.forEach((emoji, idx) => {
         const card = document.createElement('div');
-        card.className = 'card flipped'; // Сразу открыты
+        card.className = 'card'; 
         card.innerHTML = `<div class="card-front">${emoji}</div><div class="card-back"></div>`;
-        
-        card.onclick = () => {
-            if (!canClick || !isMyTurn || card.classList.contains('matched') || card.classList.contains('flipped')) return;
-            
-            card.classList.add('flipped');
-            flippedCards.push(card);
-            
-            const cardIndex = Array.from(elements.grid.children).indexOf(card);
-            
-            apiCall('api', {
-                action: 'make_move',
-                room_id: params.get('room_id'),
-                user_id: user?.id,
-                index: cardIndex
-            }).then(response => {
-                if (response?.result === 'mismatch') {
-                    isMyTurn = false;
-                    setTimeout(() => {
-                        flippedCards.forEach(c => c.classList.remove('flipped'));
-                        flippedCards = [];
-                    }, 1000);
-                } else if (response?.result === 'match') {
-                    flippedCards.forEach(c => c.classList.add('matched'));
-                    flippedCards = [];
-                }
-            });
-        };
-        if (elements.grid) elements.grid.appendChild(card);
+        grid.appendChild(card);
     });
 
-    // 3. ЦИКЛ ТАЙМЕРОВ С ПРОВЕРКОЙ
-    if (elements.status) elements.status.innerText = "ЗАПОМИНАЙ!";
-    if (elements.insLayer) elements.insLayer.style.display = 'block';
+    // --- ЭТАП 1: ИНСТРУКЦИЯ (10 секунд) ---
+    instruction.style.display = 'block';
+    status.innerText = "ПРАВИЛА БОЯ";
+    let progress = 100;
 
-    // Используем обычный setTimeout, если runUniversalTimer глючит из-за отсутствия полоски
-    setTimeout(() => {
-        if (elements.insLayer) elements.insLayer.style.display = 'none';
-        if (elements.status) elements.status.innerText = "ИГРА НАЧАЛАСЬ!";
+    const phase1 = setInterval(() => {
+        progress -= 1; // Уменьшаем полоску
+        timerBar.style.width = progress + "%";
+
+        if (progress <= 0) {
+            clearInterval(phase1);
+            startPhase2(); // Переходим к запоминанию
+        }
+    }, 100); // 100 шагов по 0.1 сек = 10 сек
+
+    // --- ЭТАП 2: ЗАПОМИНАНИЕ (10 секунд) ---
+    function startPhase2() {
+        instruction.style.display = 'none';
+        status.innerText = "ЗАПОМИНАЙ КАРТОЧКИ!";
+        progress = 100;
         
-        // Переворачиваем карты рубашкой вверх
+        // Переворачиваем все карты лицом вверх
+        document.querySelectorAll('.card').forEach(c => c.classList.add('flipped'));
+
+        const phase2 = setInterval(() => {
+            progress -= 1;
+            timerBar.style.width = progress + "%";
+
+            if (progress <= 0) {
+                clearInterval(phase2);
+                startBattle(); // Начинаем саму игру
+            }
+        }, 100);
+    }
+
+    // --- ЭТАП 3: НАЧАЛО ИГРЫ ---
+    function startBattle() {
+        status.innerText = "БОЙ НАЧАЛСЯ!";
+        timerBar.parentElement.style.display = 'none'; // Прячем полоску
+        
+        // Закрываем все карты назад
         document.querySelectorAll('.card').forEach(c => c.classList.remove('flipped'));
         
+        // Разрешаем кликать
         canClick = true;
-        console.log("Game started, cards hidden, clicks enabled.");
-    }, 10000); // 10 секунд на запоминание
+        isMyTurn = true; // Для теста ставим true, потом свяжем с сервером
+        
+        // Активируем клики по картам
+        setupCardLogic();
+    }
+}
+
+function setupCardLogic() {
+    document.querySelectorAll('.card').forEach((card, index) => {
+        card.onclick = () => {
+            if (!canClick || !isMyTurn || card.classList.contains('flipped')) return;
+            
+            card.classList.add('flipped');
+            // Тут будет запрос к твоему Python-серверу: apiCall('make_move', ...)
+        };
+    });
 }
 
 // --- 6. ЗАПУСК ---
