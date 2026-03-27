@@ -170,41 +170,36 @@ function startMemoryGame() {
         card.dataset.emoji = emoji;
         
         card.onclick = () => {
-    // 1. ПРОВЕРКИ: Можно ли кликать? Твой ли сейчас ход?
-    if (!canClick || !isMyTurn || card.classList.contains('matched') || card.classList.contains('flipped')) return;
+            // Если сейчас НЕ наш ход или карта уже открыта — выходим
+            if (!isMyTurn || card.classList.contains('matched') || card.classList.contains('flipped')) {
+                return;
+            }
 
-    // 2. ВИЗУАЛ: Сразу переворачиваем карту, чтобы не ждать ответа сервера (так приятнее играть)
-    card.classList.add('flipped');
-    flippedCards.push(card);
+            // Визуально открываем
+            card.classList.add('flipped');
+            flippedCards.push(card);
 
-    // 3. СЕТЕВАЯ ЧАСТЬ: Сообщаем серверу, какую карту мы открыли
-    // Нам нужно знать индекс карты (от 0 до 15)
-    const cardIndex = Array.from(grid.children).indexOf(card);
-    
-    apiCall('api', {
-        action: 'make_move',
-        room_id: params.get('room_id'),
-        user_id: user.id,
-        index: cardIndex
-    }).then(response => {
-        // Если сервер говорит, что пара НЕ совпала
-        if (response && response.result === 'mismatch') {
-            isMyTurn = false; // Ход переходит к врагу
-            setTimeout(() => {
-                flippedCards.forEach(c => c.classList.remove('flipped'));
-                flippedCards = [];
-                canClick = true;
-            }, 1000);
-        } 
-        // Если совпала
-        else if (response && response.result === 'match') {
-            flippedCards.forEach(c => c.classList.add('matched'));
-            flippedCards = [];
-            canClick = true;
-            // Ход остается твоим!
-        }
-    });
-};
+            const cardIndex = Array.from(grid.children).indexOf(card);
+            
+            apiCall('api', {
+                action: 'make_move',
+                room_id: params.get('room_id'),
+                user_id: user.id,
+                index: cardIndex
+            }).then(response => {
+                if (response && response.result === 'mismatch') {
+                    // Если не совпало, блокируем ход до следующего обновления от сервера
+                    isMyTurn = false;
+                    setTimeout(() => {
+                        flippedCards.forEach(c => c.classList.remove('flipped'));
+                        flippedCards = [];
+                    }, 1000);
+                } else if (response && response.result === 'match') {
+                    flippedCards.forEach(c => c.classList.add('matched'));
+                    flippedCards = [];
+                }
+            });
+        };
         grid.appendChild(card);
     });
 
@@ -269,23 +264,33 @@ async function syncGameState() {
 
     if (!data) return;
 
-    // 1. Кто сейчас ходит?
-    isMyTurn = (String(data.current_turn) === String(user.id));
+    // Сравниваем ID. Важно: используем == чтобы не зависеть от типа (строка/число)
+    isMyTurn = (data.current_turn == user.id);
+    
+    // Если сейчас наш ход, разрешаем кликать (на случай если таймер завис)
+    if (isMyTurn) {
+        canClick = true; 
+    }
+
     updateTurnUI(data);
 
-    // 2. Какие карты открыл противник?
-    data.opened_cards.forEach(idx => {
-        const card = document.querySelectorAll('.card')[idx];
-        if (!card.classList.contains('flipped')) {
-            card.classList.add('flipped');
-        }
-    });
+    // Отображаем карты, открытые врагом
+    if (data.opened_cards) {
+        data.opened_cards.forEach(idx => {
+            const cards = document.querySelectorAll('.card');
+            if (cards[idx] && !cards[idx].classList.contains('flipped')) {
+                cards[idx].classList.add('flipped');
+            }
+        });
+    }
 
-    // 3. Обновляем счет
-    document.getElementById('my-score').innerText = data.scores[user.id] || 0;
-    // Находим ID врага (он не равен твоему)
+    // Обновляем счет
+    const myScoreEl = document.getElementById('my-score');
+    const enemyScoreEl = document.getElementById('enemy-score');
+    if (myScoreEl) myScoreEl.innerText = data.scores[user.id] || 0;
+    
     const enemyId = Object.keys(data.scores).find(id => id != user.id);
-    document.getElementById('enemy-score').innerText = data.scores[enemyId] || 0;
+    if (enemyScoreEl && enemyId) enemyScoreEl.innerText = data.scores[enemyId] || 0;
 }
 
 // Запускаем опрос только в бою
@@ -294,24 +299,30 @@ if (params.get('mode') === 'battle') {
 }
 
 function updateTurnUI(data) {
-    const status = document.getElementById('game-status');
     const turnText = document.getElementById('turn-text');
     const p1Box = document.getElementById('player1-box');
     const p2Box = document.getElementById('player2-box');
 
-    // Берем имя из данных сервера или ставим "Игрок", если данных нет
-    const activePlayerName = data.current_turn_name || (isMyTurn ? user.first_name : "Противник");
+    // Определяем имя того, кто сейчас ходит
+    let activeName = "Ожидание...";
+    if (data.current_turn == user.id) {
+        activeName = user.first_name + " (ВЫ)";
+    } else {
+        // Если сервер не прислал имя врага, пишем просто "Враг"
+        activeName = data.current_turn_name || "Противник";
+    }
+
+    if (turnText) {
+        turnText.innerText = `ХОДИТ: ${activeName}`;
+        turnText.style.color = (data.current_turn == user.id) ? "#3498db" : "#e74c3c";
+    }
 
     if (isMyTurn) {
-        if (status) status.innerText = "ТВОЙ ХОД!";
-        if (turnText) turnText.innerText = `ХОДИТ: ${user.first_name} (ВЫ)`;
         p1Box.style.opacity = "1";
         p1Box.style.borderBottom = "3px solid #3498db";
         p2Box.style.opacity = "0.5";
         p2Box.style.borderBottom = "none";
     } else {
-        if (status) status.innerText = "ОЖИДАНИЕ ВРАГА...";
-        if (turnText) turnText.innerText = `ХОДИТ: ${activePlayerName}`;
         p1Box.style.opacity = "0.5";
         p1Box.style.borderBottom = "none";
         p2Box.style.opacity = "1";
