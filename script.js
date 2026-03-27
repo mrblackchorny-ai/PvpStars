@@ -263,45 +263,49 @@ if (params.get('mode') === 'battle') {
     updateRoomsData();
 }
 function startSync() {
-    // Каждую секунду спрашиваем у сервера: "Как там дела на поле?"
     setInterval(async () => {
         const data = await apiCall('api', { action: 'get_state', room_id: params.get('room_id') });
-        if (!data) return;
+        if (!data || !data.scores) return; // Проверка, что данные пришли
 
-        // 1. Определяем, чей сейчас ход
+        // 1. Определяем ход
         isMyTurn = (data.current_turn == user?.id);
 
-        // 2. Обновляем счет на экране
+        // 2. Обновляем счет (БЕЗОПАСНО)
         const myScoreEl = document.getElementById('my-score');
-if (myScoreEl) myScoreEl.innerText = data.scores[user?.id] || 0;
+        const enemyScoreEl = document.getElementById('enemy-score');
+        
+        if (myScoreEl) myScoreEl.innerText = data.scores[user?.id] || 0;
 
-const enemyScoreEl = document.getElementById('enemy-score');
-const enemyId = Object.keys(data.scores).find(id => id != user?.id);
-if (enemyId && enemyScoreEl) enemyScoreEl.innerText = data.scores[enemyId] || 0;
-        const enemyId = Object.keys(data.scores).find(id => id != user?.id);
-        if (enemyId) document.getElementById('enemy-score').innerText = data.scores[enemyId] || 0;
+        // Находим ID врага ОДИН РАЗ
+        const allIds = Object.keys(data.scores);
+        const enemyId = allIds.find(id => id != user?.id);
 
-        // 3. Подсвечиваем панель того, кто сейчас ходит
-        document.getElementById('player1-box').style.opacity = isMyTurn ? "1" : "0.5";
-        document.getElementById('player2-box').style.opacity = isMyTurn ? "0.5" : "1";
-        document.getElementById('turn-text').innerText = isMyTurn ? "ТВОЙ ХОД!" : "ОЖИДАНИЕ ВРАГА...";
+        if (enemyId && enemyScoreEl) {
+            enemyScoreEl.innerText = data.scores[enemyId] || 0;
+        }
 
-        // 4. СИНХРОНИЗИРУЕМ КАРТЫ С СЕРВЕРОМ
-        serverFlipped = data.flipped; // Сохраняем, сколько карт сейчас открыто
+        // 3. Подсвечиваем панель (с проверкой на наличие элементов)
+        const p1Box = document.getElementById('player1-box');
+        const p2Box = document.getElementById('player2-box');
+        const turnTxt = document.getElementById('turn-text');
+
+        if (p1Box) p1Box.style.opacity = isMyTurn ? "1" : "0.5";
+        if (p2Box) p2Box.style.opacity = isMyTurn ? "0.5" : "1";
+        if (turnTxt) turnTxt.innerText = isMyTurn ? "ТВОЙ ХОД!" : "ОЖИДАНИЕ ВРАГА...";
+
+        // 4. Синхронизируем карты
+        serverFlipped = data.flipped || [];
         const cards = document.querySelectorAll('.card');
         
         cards.forEach((card, idx) => {
-            if (data.matched.includes(idx)) {
-                // Если карта в списке найденных пар — она всегда открыта
+            if (data.matched && data.matched.includes(idx)) {
                 card.classList.add('flipped', 'matched');
-            } else if (data.flipped.includes(idx)) {
-                // Если карту сейчас открыл враг — показываем её
+            } else if (serverFlipped.includes(idx)) {
                 card.classList.add('flipped');
             } else {
-                // Иначе карта должна быть закрыта (рубашкой вверх)
                 card.classList.remove('flipped');
             }
         });
 
-    }, 1000); // Опрос каждую секунду
+    }, 1000);
 }
