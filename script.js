@@ -226,16 +226,21 @@ function setupCardLogic() {
     
     cards.forEach((card, index) => {
         card.onclick = async () => {
-            // УБРАЛИ ПРОВЕРКУ serverFlipped.length >= 2
-            // Теперь, если ход твой и карта не открыта — клик сработает!
-            if (!isMyTurn || card.classList.contains('flipped') || card.classList.contains('matched')) {
+            // 1. Проверяем, можно ли вообще кликать
+            // Мы не даем кликнуть, если:
+            // - Сейчас не твой ход (isMyTurn === false)
+            // - Карта уже открыта (flipped)
+            // - Карта уже отгадана (matched)
+            // - Уже открыты две карты (ждем их закрытия сервером)
+            if (!isMyTurn || card.classList.contains('flipped') || card.classList.contains('matched') || serverFlipped.length >= 2) {
+                console.log("Клик заблокирован: ход врага или карта открыта");
                 return;
             }
 
-            // Визуально переворачиваем сразу для скорости
+            // 2. Визуально переворачиваем сразу для скорости (предугадываем успех)
             card.classList.add('flipped');
             
-            // Отправляем запрос
+            // 3. Отправляем запрос на сервер
             const response = await apiCall('api', {
                 action: 'make_move',
                 room_id: params.get('room_id'),
@@ -243,10 +248,10 @@ function setupCardLogic() {
                 index: index
             });
 
+            // 4. Если сервер сказал, что ход невозможен — возвращаем карту назад
             if (!response || response.error) {
-                // Если сервер не разрешил ход (например, не твоя очередь на самом деле)
                 card.classList.remove('flipped');
-                console.log("Ошибка хода:", response?.error);
+                console.log("Сервер отклонил ход:", response?.error);
             }
         };
     });
