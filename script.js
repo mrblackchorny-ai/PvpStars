@@ -4,11 +4,6 @@ const tg = window.Telegram.WebApp;
 tg.ready();
 tg.expand();
 
-// Временный чит для тестов
-if (params.get('test') === '1') {
-    console.log("🛠 Режим тестирования активирован");
-    startMemoryGame(); 
-}
 // --- ИНИЦИАЛИЗАЦИЯ ДАННЫХ ---
 const user = tg.initDataUnsafe?.user;
 if (user) {
