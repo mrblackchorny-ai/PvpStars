@@ -145,6 +145,7 @@ if (params.get('mode') === 'battle') {
 // --- ОБНОВЛЕННАЯ ЛОГИКА ИГРЫ (2 ЭТАПА ПО 10 СЕКУНД) ---
 // Вставь эту функцию вместо старой startMemoryGame и удали дубликаты таймеров под ней
 function startMemoryGame() {
+    // --- 1. ПОДГОТОВКА ЭКРАНА ---
     document.getElementById('lobby-screen').style.display = 'none';
     document.getElementById('game-screen').style.display = 'flex';
     document.querySelector('.bottom-nav').style.display = 'none';
@@ -155,14 +156,16 @@ function startMemoryGame() {
     const insLayer = document.getElementById('instruction-layer');
     
     grid.innerHTML = '';
-    grid.style.opacity = '0';
+    grid.style.opacity = '1'; // Сразу делаем видимой, чтобы видеть карты при запоминании
     canClick = false;
 
+    // Перемешиваем эмодзи
     let gameCards = [...emojis, ...emojis].sort(() => Math.random() - 0.5);
 
+    // --- 2. СОЗДАНИЕ КАРТОЧЕК ---
     gameCards.forEach((emoji) => {
         const card = document.createElement('div');
-        card.className = 'card flipped'; // Начинаем с открытых (для фазы запоминания)
+        card.className = 'card flipped'; // Начинаем с открытых для фазы запоминания
         card.innerHTML = `
             <div class="card-front">${emoji}</div>
             <div class="card-back"></div>
@@ -170,8 +173,8 @@ function startMemoryGame() {
         card.dataset.emoji = emoji;
         
         card.onclick = () => {
-            // Если сейчас НЕ наш ход или карта уже открыта — выходим
-            if (!isMyTurn || card.classList.contains('matched') || card.classList.contains('flipped')) {
+            // Если сейчас НЕ наш ход, или фаза запоминания еще идет, или карта уже открыта — выходим
+            if (!canClick || !isMyTurn || card.classList.contains('matched') || card.classList.contains('flipped')) {
                 return;
             }
 
@@ -181,6 +184,7 @@ function startMemoryGame() {
 
             const cardIndex = Array.from(grid.children).indexOf(card);
             
+            // Отправляем ход на сервер
             apiCall('api', {
                 action: 'make_move',
                 room_id: params.get('room_id'),
@@ -188,13 +192,14 @@ function startMemoryGame() {
                 index: cardIndex
             }).then(response => {
                 if (response && response.result === 'mismatch') {
-                    // Если не совпало, блокируем ход до следующего обновления от сервера
+                    // Если не совпало, блокируем ход
                     isMyTurn = false;
                     setTimeout(() => {
                         flippedCards.forEach(c => c.classList.remove('flipped'));
                         flippedCards = [];
                     }, 1000);
                 } else if (response && response.result === 'match') {
+                    // Если совпало, помечаем как найденные
                     flippedCards.forEach(c => c.classList.add('matched'));
                     flippedCards = [];
                 }
@@ -203,42 +208,36 @@ function startMemoryGame() {
         grid.appendChild(card);
     });
 
-    // --- ТРЕХФАЗНЫЙ ЦИКЛ ИГРЫ ---
+    // --- 3. ЦИКЛ ФАЗ (ТАЙМЕРЫ) ---
     
-    // ФАЗА 1: ИНСТРУКЦИЯ (10 сек)
+    // ФАЗА 1: ИНСТРУКЦИЯ (5 секунд)
     status.innerText = "ПРАВИЛА ИГРЫ 🧠";
-    bar.style.backgroundColor = "#ffcc00";
-    if(insLayer) insLayer.style.display = 'block';
+    if (insLayer) {
+        insLayer.style.display = 'block';
+        insLayer.style.pointerEvents = 'auto';
+    }
 
-   // Функция для работы таймера и полоски (с фиксом блокировки кликов)
-function runUniversalTimer(seconds, callback) {
-    let timeLeft = seconds;
-    const bar = document.getElementById('timer-bar');
-    
-    // Сбрасываем полоску на 100% в начале
-    if (bar) bar.style.width = "100%";
-
-    const interval = setInterval(() => {
-        timeLeft -= 0.1;
-        if (bar) {
-            bar.style.width = (timeLeft / seconds) * 100 + "%";
+    runUniversalTimer(5, () => {
+        // ФАЗА 2: ЗАПОМИНАНИЕ (7 секунд)
+        if (insLayer) {
+            insLayer.style.display = 'none';
+            insLayer.style.pointerEvents = 'none'; // Убираем невидимый блок
         }
+        status.innerText = "ЗАПОМИНАЙ КАРТЫ! 👀";
 
-        if (timeLeft <= 0) {
-            clearInterval(interval);
+        runUniversalTimer(7, () => {
+            // ФАЗА 3: НАЧАЛО БОЯ
+            status.innerText = "БОЙ НАЧАЛСЯ!";
             
-            // --- ШАГ 3: УБИРАЕМ "ЩИТ" ---
-            // Принудительно скрываем инструкцию, чтобы она не перекрывала карточки
-            const insLayer = document.getElementById('instruction-layer');
-            if (insLayer) {
-                insLayer.style.display = 'none';
-                insLayer.style.pointerEvents = 'none'; // На всякий случай отключаем реакцию на клики
-            }
-            
-            callback(); // Выполняем действие по окончании времени (переход к следующей фазе)
-        }
-    }, 100);
-}
+            // Переворачиваем все карточки рубашкой вверх
+            document.querySelectorAll('.card').forEach(c => {
+                c.classList.remove('flipped');
+            });
+
+            // Разрешаем клики и запускаем проверку ходов
+            canClick = true; 
+        });
+    });
 }
 
 // --- ФИНАЛ ИГРЫ (ИСПРАВЛЕНО) ---
