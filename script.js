@@ -35,31 +35,37 @@ async function exitToBot() {
 }
 // --- 2. ИНИЦИАЛИЗАЦИЯ ИНТЕРФЕЙСА ---
 function initUI() {
-    console.log("UI Initializing...");
-    
-    // Снова проверяем пользователя внутри функции на случай задержки
-    const currentUser = tg.initDataUnsafe?.user;
+    console.log("Запуск initUI...");
+    const idEl = document.getElementById('user_id');
+    const nameEl = document.getElementById('username');
+    const balEl = document.getElementById('balance_val');
 
-    if (currentUser && currentUser.id) {
-        const nameEl = document.getElementById('username');
-        const idEl = document.getElementById('user_id');
-        
-        // Вставляем реальные данные
-        if (nameEl) nameEl.innerText = currentUser.username || currentUser.first_name || "Игрок";
-        if (idEl) idEl.innerText = currentUser.id;
-        
-        console.log("Successfully loaded user:", currentUser.id);
+    // 1. Сначала ставим баланс (он не зависит от юзера)
+    if (balEl) balEl.innerText = currentBalance;
+
+    // 2. Пробуем достать юзера
+    let currentUser = tg.initDataUnsafe?.user;
+
+    // ЕСЛИ ЮЗЕРА НЕТ СРАЗУ — пробуем подождать 100мс и проверить еще раз
+    if (!currentUser) {
+        setTimeout(() => {
+            currentUser = tg.initDataUnsafe?.user;
+            if (currentUser) {
+                renderUser(currentUser);
+            } else {
+                if (idEl) idEl.innerText = "Ошибка: Запусти через кнопку бота";
+            }
+        }, 100); 
     } else {
-        // Если данных всё ещё нет
-        const idEl = document.getElementById('user_id');
-        if (idEl) {
-            // Если мы в Telegram, но данных нет — пишем об этом
-            idEl.innerText = tg.initData ? "Ошибка профиля" : "Запуск вне TG";
-        }
+        renderUser(currentUser);
     }
 
-    const balEl = document.getElementById('balance_val');
-    if (balEl) balEl.innerText = currentBalance;
+    // Вспомогательная функция, чтобы не дублировать код
+    function renderUser(u) {
+        if (idEl) idEl.innerText = u.id;
+        if (nameEl) nameEl.innerText = u.username || u.first_name || "Игрок";
+        console.log("Данные игрока загружены:", u.id);
+    }
 }
 
 // Ждем загрузку DOM
