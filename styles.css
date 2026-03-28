@@ -206,6 +206,9 @@
 }
 
 .card.matched {
-    opacity: 0.6;
-    cursor: default;
+    transform: rotateY(180deg) !important; 
+    
+    /* Убираем затемнение (если оно было) */
+    opacity: 1 !important; 
+    filter: none !important;
 }
