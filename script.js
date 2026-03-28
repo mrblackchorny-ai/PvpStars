@@ -380,24 +380,23 @@ async function loadTopUsers() {
 
     data.forEach((player, index) => {
         const item = document.createElement('div');
-        // Стилизуем карточку игрока
         item.style.cssText = `
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background: rgba(255,255,255,0.05);
+            background: rgba(0, 0, 0, 0.05); /* Легкое затемнение вместо подсветки */
             padding: 12px 15px;
             border-radius: 12px;
-            border: 1px solid rgba(255,255,255,0.1);
+            margin: 5px 10px; /* Чтобы карточки не липли к краям */
+            border: 1px solid rgba(0, 0, 0, 0.1);
         `;
 
-        // Определяем медальку
         let rank = index + 1;
-        let trophy = rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : `<span style="color:#888; width:20px; display:inline-block;">${rank}.</span>`;
+        let trophy = rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : `<span style="color:#666; width:20px; display:inline-block;">${rank}.</span>`;
 
         item.innerHTML = `
-            <div style="color: white; font-weight: 500;">${trophy} ${player.username}</div>
-            <div style="color: #ffcc00; font-weight: bold;">${player.balance} ⭐</div>
+            <div style="color: black; font-weight: 600;">${trophy} ${player.username}</div>
+            <div style="color: #d4af37; font-weight: bold;">${player.balance} ⭐</div>
         `;
         container.appendChild(item);
     });
