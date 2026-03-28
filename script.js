@@ -35,36 +35,16 @@ async function exitToBot() {
 }
 // --- 2. ИНИЦИАЛИЗАЦИЯ ИНТЕРФЕЙСА ---
 function initUI() {
-    console.log("Запуск initUI...");
-    const idEl = document.getElementById('user_id');
     const nameEl = document.getElementById('username');
     const balEl = document.getElementById('balance_val');
 
-    // 1. Сначала ставим баланс (он не зависит от юзера)
+    // Ставим баланс
     if (balEl) balEl.innerText = currentBalance;
 
-    // 2. Пробуем достать юзера
-    let currentUser = tg.initDataUnsafe?.user;
-
-    // ЕСЛИ ЮЗЕРА НЕТ СРАЗУ — пробуем подождать 100мс и проверить еще раз
-    if (!currentUser) {
-        setTimeout(() => {
-            currentUser = tg.initDataUnsafe?.user;
-            if (currentUser) {
-                renderUser(currentUser);
-            } else {
-                if (idEl) idEl.innerText = "Ошибка: Запусти через кнопку бота";
-            }
-        }, 100); 
-    } else {
-        renderUser(currentUser);
-    }
-
-    // Вспомогательная функция, чтобы не дублировать код
-    function renderUser(u) {
-        if (idEl) idEl.innerText = u.id;
-        if (nameEl) nameEl.innerText = u.username || u.first_name || "Игрок";
-        console.log("Данные игрока загружены:", u.id);
+    // Ставим имя (если есть данные от TG)
+    const user = tg.initDataUnsafe?.user;
+    if (user && nameEl) {
+        nameEl.innerText = user.first_name || user.username || "Игрок";
     }
 }
 
