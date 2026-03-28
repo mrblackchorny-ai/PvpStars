@@ -96,6 +96,10 @@ function switchTab(tabId, element) {
     const targetTab = document.getElementById(tabId);
     if (targetTab) targetTab.classList.add('active');
     if (element) element.classList.add('active');
+
+    if (tabId === 'tab-rating') {
+        loadTopUsers();
+    }
     
     tg.HapticFeedback.impactOccurred('light');
 }
@@ -353,5 +357,48 @@ function renderFinalCards(data) {
         } else {
             card.classList.remove('flipped');
         }
+    });
+}
+async function loadTopUsers() {
+    const container = document.getElementById('top-users-list');
+    if (!container) return;
+
+    // Вызываем созданный нами ранее роут во Flask
+    const data = await apiCall('api/top', {});
+    
+    if (!data || data.error) {
+        container.innerHTML = `<div style="color:red; text-align:center;">Ошибка связи с базой</div>`;
+        return;
+    }
+
+    container.innerHTML = ""; // Очищаем текст "Загружаем..."
+
+    if (data.length === 0) {
+        container.innerHTML = `<div style="color:gray; text-align:center;">Тут пока пусто...</div>`;
+        return;
+    }
+
+    data.forEach((player, index) => {
+        const item = document.createElement('div');
+        // Стилизуем карточку игрока
+        item.style.cssText = `
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255,255,255,0.05);
+            padding: 12px 15px;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.1);
+        `;
+
+        // Определяем медальку
+        let rank = index + 1;
+        let trophy = rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : `<span style="color:#888; width:20px; display:inline-block;">${rank}.</span>`;
+
+        item.innerHTML = `
+            <div style="color: white; font-weight: 500;">${trophy} ${player.username}</div>
+            <div style="color: #ffcc00; font-weight: bold;">${player.balance} ⭐</div>
+        `;
+        container.appendChild(item);
     });
 }
