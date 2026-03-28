@@ -36,12 +36,21 @@ async function exitToBot() {
 // --- 2. ИНИЦИАЛИЗАЦИЯ ИНТЕРФЕЙСА ---
 function initUI() {
     console.log("UI Initializing...");
+    
+    // 1. Отображаем имя и ID из данных Telegram
     if (user) {
         const nameEl = document.getElementById('username');
+        const idEl = document.getElementById('user_id'); // Проверь, что тут user_id
+        
+        if (nameEl) nameEl.innerText = user.username || user.first_name || "Игрок";
+        if (idEl) idEl.innerText = user.id; 
+    } else {
+        // Если зашли через обычный браузер
         const idEl = document.getElementById('user_id');
-        if (nameEl) nameEl.innerText = user.first_name;
-        if (idEl) idEl.innerText = user.id;
+        if (idEl) idEl.innerText = "Demo_ID";
     }
+
+    // 2. Отображаем баланс
     const balEl = document.getElementById('balance_val');
     if (balEl) balEl.innerText = currentBalance;
 }
