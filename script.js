@@ -7,7 +7,7 @@ tg.expand();
 // --- 1. ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ---
 const params = new URLSearchParams(window.location.search);
 const user = tg.initDataUnsafe?.user;
-
+console.log("User data from TG:", user);
 // Пробуем достать баланс отовсюду
 let rawBal = params.get('bal') || tg.initDataUnsafe?.start_param;
 let currentBalance = parseInt(rawBal) || 0;
@@ -37,20 +37,27 @@ async function exitToBot() {
 function initUI() {
     console.log("UI Initializing...");
     
-    // 1. Отображаем имя и ID из данных Telegram
-    if (user) {
+    // Снова проверяем пользователя внутри функции на случай задержки
+    const currentUser = tg.initDataUnsafe?.user;
+
+    if (currentUser && currentUser.id) {
         const nameEl = document.getElementById('username');
-        const idEl = document.getElementById('user_id'); // Проверь, что тут user_id
-        
-        if (nameEl) nameEl.innerText = user.username || user.first_name || "Игрок";
-        if (idEl) idEl.innerText = user.id; 
-    } else {
-        // Если зашли через обычный браузер
         const idEl = document.getElementById('user_id');
-        if (idEl) idEl.innerText = "Demo_ID";
+        
+        // Вставляем реальные данные
+        if (nameEl) nameEl.innerText = currentUser.username || currentUser.first_name || "Игрок";
+        if (idEl) idEl.innerText = currentUser.id;
+        
+        console.log("Successfully loaded user:", currentUser.id);
+    } else {
+        // Если данных всё ещё нет
+        const idEl = document.getElementById('user_id');
+        if (idEl) {
+            // Если мы в Telegram, но данных нет — пишем об этом
+            idEl.innerText = tg.initData ? "Ошибка профиля" : "Запуск вне TG";
+        }
     }
 
-    // 2. Отображаем баланс
     const balEl = document.getElementById('balance_val');
     if (balEl) balEl.innerText = currentBalance;
 }
