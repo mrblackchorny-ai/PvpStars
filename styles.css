@@ -86,15 +86,20 @@
         .bottom-nav {
             position: fixed;
             bottom: 0;
-            width: 100%;
+            left: 0;           /* ОБЯЗАТЕЛЬНО: прижимаем к левому краю */
+            width: 100%;       /* Занимает всю ширину */
             height: 65px;
             background: #17212b;
             display: flex;
+            justify-content: space-around; /* Равномерно распределяем кнопки */
+            align-items: center;
             border-top: 1px solid rgba(255, 255, 255, 0.1);
+            z-index: 1000;     /* Чтобы меню всегда было поверх контента */
+            box-sizing: border-box; /* Чтобы границы не расширяли меню за пределы экрана */
         }
 
         .nav-item {
-            flex: 1;
+            flex: 1;           /* Каждая кнопка занимает равное место */
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -102,6 +107,7 @@
             color: #888;
             font-size: 12px;
             cursor: pointer;
+            height: 100%;      /* Растягиваем на всю высоту таббара */
         }
 
         .nav-item.active {
