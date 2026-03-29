@@ -365,41 +365,38 @@ async function loadTopUsers() {
     const container = document.getElementById('top-users-list');
     if (!container) return;
 
-    // Вызываем созданный нами ранее роут во Flask
-    const data = await apiCall('api/top', {});
-    
-    if (!data || data.error) {
-        container.innerHTML = `<div style="color:red; text-align:center;">Ошибка связи с базой</div>`;
-        return;
+    try {
+        // Качаем файл, который создает бот. ?v= пресекает кэширование.
+        const response = await fetch(`${API_URL}/static/top.json?v=${Date.now()}`);
+        const data = await response.json();
+
+        container.innerHTML = ""; // Очистка
+
+        if (!data || data.length === 0) {
+            container.innerHTML = `<div style="color:gray; text-align:center;">Тут пока пусто...</div>`;
+            return;
+        }
+
+        data.forEach((player, index) => {
+            const item = document.createElement('div');
+            item.className = 'top-user-item'; // Если есть стили в CSS
+            item.style.cssText = `
+                display: flex; justify-content: space-between; align-items: center;
+                background: rgba(255, 255, 255, 0.1); padding: 12px 15px;
+                border-radius: 12px; margin: 8px 10px; border: 1px solid rgba(255, 255, 255, 0.1);
+            `;
+
+            let rank = index + 1;
+            let icon = rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : `${rank}.`;
+
+            item.innerHTML = `
+                <div style="color: white; font-weight: 600;">${icon} @${player.name}</div>
+                <div style="color: #ffd700; font-weight: bold;">${player.balance} ⭐</div>
+            `;
+            container.appendChild(item);
+        });
+    } catch (e) {
+        console.error("Ошибка загрузки топа:", e);
+        container.innerHTML = `<div style="color:red; text-align:center;">Топ временно недоступен</div>`;
     }
-
-    container.innerHTML = ""; // Очищаем текст "Загружаем..."
-
-    if (data.length === 0) {
-        container.innerHTML = `<div style="color:gray; text-align:center;">Тут пока пусто...</div>`;
-        return;
-    }
-
-    data.forEach((player, index) => {
-        const item = document.createElement('div');
-        item.style.cssText = `
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: rgba(0, 0, 0, 0.05); /* Легкое затемнение вместо подсветки */
-            padding: 12px 15px;
-            border-radius: 12px;
-            margin: 5px 10px; /* Чтобы карточки не липли к краям */
-            border: 1px solid rgba(0, 0, 0, 0.1);
-        `;
-
-        let rank = index + 1;
-        let trophy = rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : `<span style="color:#666; width:20px; display:inline-block;">${rank}.</span>`;
-
-        item.innerHTML = `
-            <div style="color: black; font-weight: 600;">${trophy} ${player.username}</div>
-            <div style="color: #d4af37; font-weight: bold;">${player.balance} ⭐</div>
-        `;
-        container.appendChild(item);
-    });
 }
