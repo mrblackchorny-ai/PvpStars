@@ -378,22 +378,18 @@ async function loadTopUsers() {
 
         data.forEach((player, index) => {
             const item = document.createElement('div');
-            // Принудительно задаем белый фон карточки
-            item.style.backgroundColor = "white"; 
-            item.style.display = "flex";
-            item.style.justifyContent = "space-between";
-            item.style.padding = "12px";
-            item.style.margin = "8px";
-            item.style.borderRadius = "10px";
+            item.className = 'top-user-item'; // Применяем класс из CSS
 
             let rank = index + 1;
+            // Медальки только первым трем, остальным — точка
             let icon = rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : "•";
 
             item.innerHTML = `
-                <div style="color: black !important; font-weight: bold;">
-                    <span style="color: gray;">${icon}</span> @${player.username}
+                <div class="top-user-name">
+                    <span class="top-rank-icon">${icon}</span> 
+                    @${player.username}
                 </div>
-                <div style="color: #b8860b !important; font-weight: 900;">${player.balance} ⭐</div>
+                <div class="top-user-balance">${player.balance} ⭐</div>
             `;
             container.appendChild(item);
         });
