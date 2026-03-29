@@ -378,24 +378,22 @@ async function loadTopUsers() {
 
         data.forEach((player, index) => {
             const item = document.createElement('div');
-            item.style.cssText = `
-                display: flex; justify-content: space-between; align-items: center;
-                background: rgba(255, 255, 255, 0.9); /* Сделали фон плотнее для читаемости */
-                padding: 12px 15px;
-                border-radius: 12px; margin: 8px 10px; 
-                border: 1px solid rgba(0, 0, 0, 0.1);
-            `;
+            // Принудительно задаем белый фон карточки
+            item.style.backgroundColor = "white"; 
+            item.style.display = "flex";
+            item.style.justifyContent = "space-between";
+            item.style.padding = "12px";
+            item.style.margin = "8px";
+            item.style.borderRadius = "10px";
 
             let rank = index + 1;
-            // Медальки только для ТОП-3, для остальных — точка
             let icon = rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : "•";
 
             item.innerHTML = `
-                <div style="color: #1a1a1a; font-weight: 700; font-size: 15px;">
-                    <span style="margin-right: 5px; color: #555;">${icon}</span> 
-                    @${player.username}
+                <div style="color: black !important; font-weight: bold;">
+                    <span style="color: gray;">${icon}</span> @${player.username}
                 </div>
-                <div style="color: #b8860b; font-weight: 800;">${player.balance} ⭐</div>
+                <div style="color: #b8860b !important; font-weight: 900;">${player.balance} ⭐</div>
             `;
             container.appendChild(item);
         });
