@@ -367,7 +367,6 @@ async function loadTopUsers() {
 
     try {
         // Качаем файл, который создает бот. ?v= пресекает кэширование.
-        const response = await fetch(`${API_URL}/static/top.json?v=${Date.now()}`);
         const data = await apiCall('api/top', { t: Date.now() });
 
         container.innerHTML = ""; // Очистка
@@ -390,7 +389,7 @@ async function loadTopUsers() {
             let icon = rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : `${rank}.`;
 
             item.innerHTML = `
-                <div style="color: white; font-weight: 600;">${icon} @${player.name}</div>
+                <div style="color: white; font-weight: 600;">${icon} @${player.username}</div>
                 <div style="color: #ffd700; font-weight: bold;">${player.balance} ⭐</div>
             `;
             container.appendChild(item);
