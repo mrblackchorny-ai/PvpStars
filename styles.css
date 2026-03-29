@@ -218,3 +218,30 @@
     opacity: 1 !important; 
     filter: none !important;
 }
+/* Специальный стиль для карточки в топе */
+.top-user-item {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    background: #f8f9fa !important; /* Светло-серый фон, чтобы выделялся на белом табе */
+    padding: 12px 15px !important;
+    border-radius: 12px !important;
+    margin: 8px 10px !important;
+    border: 1px solid #ddd !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05) !important;
+}
+
+.top-user-name {
+    color: #1a1a1a !important; /* Глубокий черный */
+    font-weight: 700 !important;
+}
+
+.top-user-balance {
+    color: #b8860b !important; /* Темное золото */
+    font-weight: 800 !important;
+}
+
+.top-rank-icon {
+    margin-right: 8px;
+    font-size: 1.1em;
+}
