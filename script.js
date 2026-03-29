@@ -368,7 +368,7 @@ async function loadTopUsers() {
     try {
         // Качаем файл, который создает бот. ?v= пресекает кэширование.
         const response = await fetch(`${API_URL}/static/top.json?v=${Date.now()}`);
-        const data = await response.json();
+        const data = await apiCall('api/top', { t: Date.now() });
 
         container.innerHTML = ""; // Очистка
 
