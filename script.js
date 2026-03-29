@@ -378,19 +378,24 @@ async function loadTopUsers() {
 
         data.forEach((player, index) => {
             const item = document.createElement('div');
-            item.className = 'top-user-item'; // Если есть стили в CSS
             item.style.cssText = `
                 display: flex; justify-content: space-between; align-items: center;
-                background: rgba(255, 255, 255, 0.1); padding: 12px 15px;
-                border-radius: 12px; margin: 8px 10px; border: 1px solid rgba(255, 255, 255, 0.1);
+                background: rgba(255, 255, 255, 0.9); /* Сделали фон плотнее для читаемости */
+                padding: 12px 15px;
+                border-radius: 12px; margin: 8px 10px; 
+                border: 1px solid rgba(0, 0, 0, 0.1);
             `;
 
             let rank = index + 1;
-            let icon = rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : `${rank}.`;
+            // Медальки только для ТОП-3, для остальных — точка
+            let icon = rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : "•";
 
             item.innerHTML = `
-                <div style="color: white; font-weight: 600;">${icon} @${player.username}</div>
-                <div style="color: #ffd700; font-weight: bold;">${player.balance} ⭐</div>
+                <div style="color: #1a1a1a; font-weight: 700; font-size: 15px;">
+                    <span style="margin-right: 5px; color: #555;">${icon}</span> 
+                    @${player.username}
+                </div>
+                <div style="color: #b8860b; font-weight: 800;">${player.balance} ⭐</div>
             `;
             container.appendChild(item);
         });
