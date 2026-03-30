@@ -180,7 +180,7 @@ async function startMemoryGame() {
     screen.style.display = 'flex';
     grid.innerHTML = '';
     grid.style.opacity = '1';
-    const data = await apiCall('api', { action: 'get_state', room_id: params.get('room_id'), user_id: user?.id });
+    const data = await apiCall('api', { action: 'get_state', room_id: params.get('room_id'), user_id: user?.id, bet: params.get('bet') || 0 });
     data.board.forEach((emoji, idx) => {
         const card = document.createElement('div');
         card.className = 'card'; 
