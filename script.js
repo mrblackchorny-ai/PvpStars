@@ -284,26 +284,47 @@ if (params.get('mode') === 'battle') {
     
     updateRoomsData();
 }
+let syncInterval; // Добавляем переменную
+
 function startSync() {
-    // Ускоряем до 400мс, чтобы игра была "живой"
-    setInterval(async () => {
+    // Сохраняем интервал в переменную
+    syncInterval = setInterval(async () => {
         const data = await apiCall('api', { 
             action: 'get_state', 
             room_id: params.get('room_id'),
-            t: Date.now() // Защита от кэширования
+            t: Date.now() 
         });
 
         if (!data || !data.scores) return;
         serverFlipped = data.flipped || [];
+        
         // 1. ПРОВЕРКА КОНЦА ИГРЫ
         if (data.status === 'finished') {
+            clearInterval(syncInterval); // ОСТАНАВЛИВАЕМ ТАЙМЕР!
+            
             canClick = false;
+            // ... (дальше твой код без изменений)
             isMyTurn = false;
             const winnerId = data.winner;
             const isWinner = (winnerId == user?.id);
             const winMsg = winnerId === 'draw' ? "НИЧЬЯ! 😎" : (isWinner ? "ТЫ ПОБЕДИЛ! 🏆" : "ТЫ ПРОИГРАЛ... 💀");
             
             const turnTxt = document.getElementById('turn-text');
+            if (isWinner) {
+                apiCall('api', { 
+                    action: 'claim_win', 
+                    room_id: params.get('room_id'),
+                    user_id: user?.id 
+                }).then(res => {
+                    console.log("Баланс обновлен на сервере:", res);
+                    // Вот этого у тебя не было:
+                    const balEl = document.getElementById('balance_val');
+                    if (res && res.new_balance !== undefined) {
+                        currentBalance = res.new_balance;
+                        if (balEl) balEl.innerText = currentBalance;
+                    }
+                });
+            }
             if (turnTxt) {
                 turnTxt.style.color = "gold";
                 // ВАЖНО: Весь этот блок заменяет содержимое элемента turn-text
