@@ -299,47 +299,67 @@ function startSync() {
         serverFlipped = data.flipped || [];
         
         // 1. ПРОВЕРКА КОНЦА ИГРЫ
+        // 1. ПРОВЕРКА КОНЦА ИГРЫ
         if (data.status === 'finished') {
-            clearInterval(syncInterval); // ОСТАНАВЛИВАЕМ ТАЙМЕР!
+            clearInterval(syncInterval); 
             
             canClick = false;
-            // ... (дальше твой код без изменений)
             isMyTurn = false;
             const winnerId = data.winner;
             const isWinner = (winnerId == user?.id);
-            const winMsg = winnerId === 'draw' ? "НИЧЬЯ! 😎" : (isWinner ? "ТЫ ПОБЕДИЛ! 🏆" : "ТЫ ПРОИГРАЛ... 💀");
+            
+            // Определяем текст сообщения
+            let statusText = "";
+            if (winnerId === 'draw') {
+                statusText = "НИЧЬЯ! 😎";
+            } else if (isWinner) {
+                statusText = "ТЫ ПОБЕДИЛ! 🏆";
+            } else {
+                statusText = "ТЫ ПРОИГРАЛ... 💀";
+            }
             
             const turnTxt = document.getElementById('turn-text');
-            if (isWinner) {
-                apiCall('api', { 
-                    action: 'claim_win', 
-                    room_id: params.get('room_id'),
-                    user_id: user?.id 
-                }).then(res => {
-                    console.log("Баланс обновлен на сервере:", res);
-                    // Вот этого у тебя не было:
-                    const balEl = document.getElementById('balance_val');
-                    if (res && res.new_balance !== undefined) {
-                        currentBalance = res.new_balance;
-                        if (balEl) balEl.innerText = currentBalance;
-                    }
-                });
-            }
             if (turnTxt) {
                 turnTxt.style.color = "gold";
-                // ВАЖНО: Весь этот блок заменяет содержимое элемента turn-text
+                // Меняем верстку: если победил - кнопка "Получить", если нет - просто "В лобби"
                 turnTxt.innerHTML = `
-                    <div style="font-size: 22px; margin-bottom: 5px;">${winMsg}</div>
-                    <div style="font-size: 16px; color: white;">Выигрыш: <b>${data.win_amount} ⭐</b></div>
-                    <button id="exit-btn" style="margin-top:10px; padding:8px 25px; background:#00ff00; border:none; border-radius:8px; color:black; font-weight:bold; cursor:pointer;">В ЛОББИ</button>
+                    <div style="font-size: 20px; margin-bottom: 5px;">${statusText}</div>
+                    ${isWinner ? 
+                        `<button id="claim-btn" style="margin-top:10px; padding:10px 20px; background:linear-gradient(to bottom, #ffeb3b, #fbc02d); border:none; border-radius:8px; color:black; font-weight:bold; cursor:pointer; box-shadow: 0 4px #f57f17;">ПОЛУЧИТЬ ВЫИГРЫШ</button>` : 
+                        `<button id="exit-btn" style="margin-top:10px; padding:8px 25px; background:#555; border:none; border-radius:8px; color:white; cursor:pointer;">В ЛОББИ</button>`
+                    }
                 `;
 
-                // Принудительно вешаем событие на кнопку после её создания
-                const btn = document.getElementById('exit-btn');
-                if (btn) {
-                    btn.onclick = () => exitToBot();
+                // Логика кнопки для победителя
+                const claimBtn = document.getElementById('claim-btn');
+                if (claimBtn) {
+                    claimBtn.onclick = async () => {
+                        claimBtn.innerText = "ОБРАБОТКА...";
+                        claimBtn.disabled = true;
+                        
+                        // Отправляем сигнал серверу, чтобы он начислил баланс И отправил сообщение в бот
+                        const res = await apiCall('api', { 
+                            action: 'claim_win', 
+                            room_id: params.get('room_id'),
+                            user_id: user?.id 
+                        });
+                        
+                        if (res && res.ok) {
+                            tg.showAlert("Выигрыш зачислен! Проверь сообщение от бота.");
+                            exitToBot(); // Закрываем игру
+                        } else {
+                            tg.showAlert("Ошибка: " + (res?.error || "неизвестно"));
+                            claimBtn.disabled = false;
+                            claimBtn.innerText = "ПОЛУЧИТЬ ВЫИГРЫШ";
+                        }
+                    };
                 }
+
+                // Логика кнопки для проигравшего
+                const exitBtn = document.getElementById('exit-btn');
+                if (exitBtn) exitBtn.onclick = () => exitToBot();
             }
+            
             renderFinalCards(data);
             return; 
         }
