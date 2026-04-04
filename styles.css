@@ -164,11 +164,13 @@
 }
 /* Упрощенная сетка, которая точно не перекрывает кнопки */
 .memory-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 10px;
-    padding: 10px;
-    perspective: 1000px;
+    display: grid !important; /* Принудительно включаем сетку */
+    grid-template-columns: repeat(4, 1fr) !important; /* Строго 4 колонки */
+    grid-template-rows: repeat(4, 1fr) !important;    /* Строго 4 ряда */
+    gap: 8px;           /* Расстояние между карточками */
+    width: 100%;
+    aspect-ratio: 1 / 1; /* Делаем поле квадратным */
+    margin: 0 auto;
 }
 
 /* Контейнер для 3D эффекта */
