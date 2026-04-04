@@ -163,8 +163,27 @@ function renderRooms() {
 
 // --- 5. ЛОГИКА ИГРЫ ---
 function createRoom(bet) {
-    if (currentBalance < bet) return tg.showAlert("Недостаточно звёзд!");
-    tg.sendData(JSON.stringify({ action: "create_room", bet: parseInt(bet) }));
+    // 1. Принудительно превращаем в число, чтобы не отправить "0" или NaN
+    const betAmount = parseInt(bet);
+
+    // 2. Проверка на дурака
+    if (isNaN(betAmount) || betAmount <= 0) {
+        return tg.showAlert("Выберите корректную ставку!");
+    }
+
+    if (currentBalance < betAmount) {
+        return tg.showAlert("Недостаточно звёзд!");
+    }
+
+    // 3. Отправляем данные боту (важно: передаем как объект с числом)
+    const dataToSend = {
+        action: "create_room",
+        bet: betAmount
+    };
+
+    console.log("Отправка данных в бот:", dataToSend);
+    
+    tg.sendData(JSON.stringify(dataToSend));
     tg.close(); 
 }
 
@@ -281,13 +300,7 @@ function setupCardLogic() {
     });
 }
 
-// --- 6. ЗАПУСК ---
-if (params.get('mode') === 'battle') {
-    startMemoryGame();
-} else {
-    
-    updateRoomsData();
-}
+
 // --- 6. СИНХРОНИЗАЦИЯ И ОТРИСОВКА ---
 
 let syncInterval; 
