@@ -5,14 +5,18 @@ tg.ready();
 tg.expand();
 
 // --- 1. ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ---
+// --- 1. ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ---
 const params = new URLSearchParams(window.location.search);
 const user = tg.initDataUnsafe?.user;
-console.log("User data from TG:", user);
-// Пробуем достать баланс отовсюду
-let rawBal = params.get('bal') || tg.initDataUnsafe?.start_param;
-let currentBalance = parseInt(rawBal) || 0;
+
+// Баланс берем ТОЛЬКО из параметров ссылки
+let currentBalance = parseInt(params.get('bal')) || 0;
+
+// А start_param используем для спец. команд (например, забрать выигрыш)
+let startParam = tg.initDataUnsafe?.start_param; 
 
 let activeRooms = {};
+// ... остальные переменные (isMyTurn, canClick и т.д.) без изменений
 let isMyTurn = false;
 let canClick = false;
 let flippedCards = [];
@@ -377,25 +381,35 @@ function renderFinalCards(data) {
 // --- 7. ТОЧКА ВХОДА (RUN) ---
 
 // 1. Проверяем startParam сразу при загрузке
-if (startParam && startParam.startsWith('room_')) {
-    tg.showConfirm("Забрать ваш выигрыш?", async (ok) => {
-        if (ok) {
-            const res = await apiCall('api', { action: 'claim_win', room_id: startParam, user_id: user?.id });
-            if (res && res.ok) {
-                tg.showAlert("Звёзды зачислены!");
-                if (res.new_balance && document.getElementById('balance_val')) {
-                    document.getElementById('balance_val').innerText = res.new_balance;
+// --- 7. ТОЧКА ВХОДА (RUN) ---
+window.onload = () => {
+    // 1. Проверяем, пришел ли пользователь по ссылке "Забрать выигрыш"
+    if (startParam && startParam.startsWith('room_')) {
+        tg.showConfirm("Забрать ваш выигрыш?", async (ok) => {
+            if (ok) {
+                const res = await apiCall('api', { 
+                    action: 'claim_win', 
+                    room_id: startParam, 
+                    user_id: user?.id 
+                });
+                if (res && res.ok) {
+                    tg.showAlert("Звёзды зачислены!");
+                    // Обновляем баланс на экране, если элемент существует
+                    const balEl = document.getElementById('balance_val');
+                    if (res.new_balance && balEl) balEl.innerText = res.new_balance;
+                } else {
+                    tg.showAlert("Ошибка: " + (res?.error || "Не удалось забрать"));
                 }
-            } else {
-                tg.showAlert("Ошибка: " + (res?.error || "Не удалось забрать"));
             }
-        }
-    });
-}
+        });
+    }
 
-// 2. Выбираем режим отображения
-if (params.get('mode') === 'battle') {
-    startMemoryGame();
-} else {
-    updateRoomsData();
-}
+    // 2. Решаем, что показать пользователю
+    if (params.get('mode') === 'battle') {
+        // Если в ссылке есть mode=battle, запускаем саму игру
+        startMemoryGame();
+    } else {
+        // Иначе просто обновляем список доступных комнат в лобби
+        updateRoomsData();
+    }
+};
