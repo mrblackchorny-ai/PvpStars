@@ -295,32 +295,37 @@ function startSync() {
 
         if (!data || !data.scores) return;
         serverFlipped = data.flipped || [];
+        
         // 1. ПРОВЕРКА КОНЦА ИГРЫ
         if (data.status === 'finished') {
             canClick = false;
             isMyTurn = false;
-            const winnerId = data.winner;
-            const isWinner = (winnerId == user?.id);
-            const winMsg = winnerId === 'draw' ? "НИЧЬЯ! 😎" : (isWinner ? "ТЫ ПОБЕДИЛ! 🏆" : "ТЫ ПРОИГРАЛ... 💀");
-            
-            const turnTxt = document.getElementById('turn-text');
-            if (turnTxt) {
-                turnTxt.style.color = "gold";
-                // ВАЖНО: Весь этот блок заменяет содержимое элемента turn-text
-                turnTxt.innerHTML = `
-                    <div style="font-size: 22px; margin-bottom: 5px;">${winMsg}</div>
-                    <div style="font-size: 16px; color: white;">Выигрыш: <b>${data.win_amount} ⭐</b></div>
-                    <button id="exit-btn" style="margin-top:10px; padding:8px 25px; background:#00ff00; border:none; border-radius:8px; color:black; font-weight:bold; cursor:pointer;">В ЛОББИ</button>
-                `;
 
-                // Принудительно вешаем событие на кнопку после её создания
-                const btn = document.getElementById('exit-btn');
-                if (btn) {
-                    btn.onclick = () => exitToBot();
-                }
-            }
+            // Сначала рисуем финальные карты (последняя пара должна отобразиться)
             renderFinalCards(data);
-            return; 
+
+            // Ждём окончания CSS-анимации переворота (600мс) + запас 300мс
+            setTimeout(() => {
+                const winnerId = data.winner;
+                const isWinner = (winnerId == user?.id);
+                const winMsg = winnerId === 'draw'
+                    ? "НИЧЬЯ! 😎"
+                    : (isWinner ? "ТЫ ПОБЕДИЛ! 🏆" : "ТЫ ПРОИГРАЛ... 💀");
+
+                const turnTxt = document.getElementById('turn-text');
+                if (turnTxt) {
+                    turnTxt.style.color = "gold";
+                    turnTxt.innerHTML = `
+                        <div style="font-size: 22px; margin-bottom: 5px;">${winMsg}</div>
+                        <div style="font-size: 16px; color: white;">Выигрыш: <b>${data.win_amount} ⭐</b></div>
+                        <button id="exit-btn" style="margin-top:10px; padding:8px 25px; background:#00ff00; border:none; border-radius:8px; color:black; font-weight:bold; cursor:pointer;">В ЛОББИ</button>
+                    `;
+                    const btn = document.getElementById('exit-btn');
+                    if (btn) btn.onclick = () => exitToBot();
+                }
+            }, 900);
+
+            return;
         }
 
         // 2. Обновляем статус хода и счет (если игра еще идет)
