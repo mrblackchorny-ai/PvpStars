@@ -5,18 +5,14 @@ tg.ready();
 tg.expand();
 
 // --- 1. ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ---
-// --- 1. ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ---
 const params = new URLSearchParams(window.location.search);
 const user = tg.initDataUnsafe?.user;
-
-// Баланс берем ТОЛЬКО из параметров ссылки
-let currentBalance = parseInt(params.get('bal')) || 0;
-
-// А start_param используем для спец. команд (например, забрать выигрыш)
-let startParam = tg.initDataUnsafe?.start_param; 
+console.log("User data from TG:", user);
+// Пробуем достать баланс отовсюду
+let rawBal = params.get('bal') || tg.initDataUnsafe?.start_param;
+let currentBalance = parseInt(rawBal) || 0;
 
 let activeRooms = {};
-// ... остальные переменные (isMyTurn, canClick и т.д.) без изменений
 let isMyTurn = false;
 let canClick = false;
 let flippedCards = [];
@@ -163,27 +159,8 @@ function renderRooms() {
 
 // --- 5. ЛОГИКА ИГРЫ ---
 function createRoom(bet) {
-    // 1. Принудительно превращаем в число, чтобы не отправить "0" или NaN
-    const betAmount = parseInt(bet);
-
-    // 2. Проверка на дурака
-    if (isNaN(betAmount) || betAmount <= 0) {
-        return tg.showAlert("Выберите корректную ставку!");
-    }
-
-    if (currentBalance < betAmount) {
-        return tg.showAlert("Недостаточно звёзд!");
-    }
-
-    // 3. Отправляем данные боту (важно: передаем как объект с числом)
-    const dataToSend = {
-        action: "create_room",
-        bet: betAmount
-    };
-
-    console.log("Отправка данных в бот:", dataToSend);
-    
-    tg.sendData(JSON.stringify(dataToSend));
+    if (currentBalance < bet) return tg.showAlert("Недостаточно звёзд!");
+    tg.sendData(JSON.stringify({ action: "create_room", bet: parseInt(bet) }));
     tg.close(); 
 }
 
@@ -300,70 +277,59 @@ function setupCardLogic() {
     });
 }
 
-
-// --- 6. СИНХРОНИЗАЦИЯ И ОТРИСОВКА ---
-
-let syncInterval; 
-
+// --- 6. ЗАПУСК ---
+if (params.get('mode') === 'battle') {
+    startMemoryGame();
+} else {
+    
+    updateRoomsData();
+}
 function startSync() {
-    // Чистая функция: только опрос сервера во время игры
-    syncInterval = setInterval(async () => {
+    // Ускоряем до 400мс, чтобы игра была "живой"
+    setInterval(async () => {
         const data = await apiCall('api', { 
             action: 'get_state', 
             room_id: params.get('room_id'),
-            t: Date.now() 
+            t: Date.now() // Защита от кэширования
         });
 
         if (!data || !data.scores) return;
         serverFlipped = data.flipped || [];
-        
+        // 1. ПРОВЕРКА КОНЦА ИГРЫ
         if (data.status === 'finished') {
-            clearInterval(syncInterval); 
             canClick = false;
             isMyTurn = false;
-
             const winnerId = data.winner;
             const isWinner = (winnerId == user?.id);
-            let statusText = winnerId === 'draw' ? "НИЧЬЯ! 😎" : (isWinner ? "ТЫ ПОБЕДИЛ! 🏆" : "ТЫ ПРОИГРАЛ... 💀");
+            const winMsg = winnerId === 'draw' ? "НИЧЬЯ! 😎" : (isWinner ? "ТЫ ПОБЕДИЛ! 🏆" : "ТЫ ПРОИГРАЛ... 💀");
             
             const turnTxt = document.getElementById('turn-text');
             if (turnTxt) {
                 turnTxt.style.color = "gold";
+                // ВАЖНО: Весь этот блок заменяет содержимое элемента turn-text
                 turnTxt.innerHTML = `
-                    <div style="font-size: 20px; margin-bottom: 5px;">${statusText}</div>
-                    ${isWinner ? 
-                        `<button id="claim-btn" style="margin-top:10px; padding:10px 20px; background:linear-gradient(to bottom, #ffeb3b, #fbc02d); border:none; border-radius:8px; color:black; font-weight:bold; cursor:pointer; box-shadow: 0 4px #f57f17;">ПОЛУЧИТЬ ВЫИГРЫШ</button>` : 
-                        `<button id="exit-btn" style="margin-top:10px; padding:8px 25px; background:#555; border:none; border-radius:8px; color:white; cursor:pointer;">В ЛОББИ</button>`
-                    }
+                    <div style="font-size: 22px; margin-bottom: 5px;">${winMsg}</div>
+                    <div style="font-size: 16px; color: white;">Выигрыш: <b>${data.win_amount} ⭐</b></div>
+                    <button id="exit-btn" style="margin-top:10px; padding:8px 25px; background:#00ff00; border:none; border-radius:8px; color:black; font-weight:bold; cursor:pointer;">В ЛОББИ</button>
                 `;
 
-                const claimBtn = document.getElementById('claim-btn');
-                if (claimBtn) {
-                    claimBtn.onclick = async () => {
-                        claimBtn.innerText = "ОБРАБОТКА...";
-                        claimBtn.disabled = true;
-                        const res = await apiCall('api', { action: 'claim_win', room_id: params.get('room_id'), user_id: user?.id });
-                        if (res && res.ok) {
-                            tg.showAlert("Победа! Баланс обновлен.");
-                            tg.close();
-                        } else {
-                            tg.showAlert("Ошибка: " + (res?.error || "Попробуйте позже"));
-                            claimBtn.disabled = false;
-                            claimBtn.innerText = "ПОЛУЧИТЬ ВЫИГРЫШ";
-                        }
-                    };
+                // Принудительно вешаем событие на кнопку после её создания
+                const btn = document.getElementById('exit-btn');
+                if (btn) {
+                    btn.onclick = () => exitToBot();
                 }
-                const exitBtn = document.getElementById('exit-btn');
-                if (exitBtn) exitBtn.onclick = () => exitToBot();
             }
             renderFinalCards(data);
             return; 
         }
 
+        // 2. Обновляем статус хода и счет (если игра еще идет)
         isMyTurn = (data.current_turn == user?.id);
+
         const myScoreEl = document.getElementById('my-score');
         const enemyScoreEl = document.getElementById('enemy-score');
         if (myScoreEl) myScoreEl.innerText = data.scores[user?.id] || 0;
+        
         const enemyId = Object.keys(data.scores).find(id => id != user?.id);
         if (enemyId && enemyScoreEl) enemyScoreEl.innerText = data.scores[enemyId] || 0;
 
@@ -372,15 +338,20 @@ function startSync() {
             turnTxt.innerText = isMyTurn ? "ТВОЙ ХОД!" : "ОЖИДАНИЕ ВРАГА...";
             turnTxt.style.color = isMyTurn ? "#00ff00" : "#ff0000";
         }
+
+        // 3. СИНХРОНИЗАЦИЯ КАРТ
         renderFinalCards(data);
+
     }, 400);
 }
 
+// Вынес отрисовку в отдельную мини-функцию, чтобы не дублировать код
 function renderFinalCards(data) {
     const cards = document.querySelectorAll('.card');
     cards.forEach((card, idx) => {
         const isMatched = data.matched && data.matched.includes(idx);
         const isFlippedNow = data.flipped && data.flipped.includes(idx);
+
         if (isMatched) {
             card.classList.add('flipped', 'matched');
         } else if (isFlippedNow) {
@@ -390,39 +361,40 @@ function renderFinalCards(data) {
         }
     });
 }
+async function loadTopUsers() {
+    const container = document.getElementById('top-users-list');
+    if (!container) return;
 
-// --- 7. ТОЧКА ВХОДА (RUN) ---
+    try {
+        // Качаем файл, который создает бот. ?v= пресекает кэширование.
+        const data = await apiCall('api/top', { t: Date.now() });
 
-// 1. Проверяем startParam сразу при загрузке
-// --- 7. ТОЧКА ВХОДА (RUN) ---
-window.onload = () => {
-    // 1. Проверяем, пришел ли пользователь по ссылке "Забрать выигрыш"
-    if (startParam && startParam.startsWith('room_')) {
-        tg.showConfirm("Забрать ваш выигрыш?", async (ok) => {
-            if (ok) {
-                const res = await apiCall('api', { 
-                    action: 'claim_win', 
-                    room_id: startParam, 
-                    user_id: user?.id 
-                });
-                if (res && res.ok) {
-                    tg.showAlert("Звёзды зачислены!");
-                    // Обновляем баланс на экране, если элемент существует
-                    const balEl = document.getElementById('balance_val');
-                    if (res.new_balance && balEl) balEl.innerText = res.new_balance;
-                } else {
-                    tg.showAlert("Ошибка: " + (res?.error || "Не удалось забрать"));
-                }
-            }
+        container.innerHTML = ""; // Очистка
+
+        if (!data || data.length === 0) {
+            container.innerHTML = `<div style="color:gray; text-align:center;">Тут пока пусто...</div>`;
+            return;
+        }
+
+        data.forEach((player, index) => {
+            const item = document.createElement('div');
+            item.className = 'top-user-item'; // Применяем класс из CSS
+
+            let rank = index + 1;
+            // Медальки только первым трем, остальным — точка
+            let icon = rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : "•";
+
+            item.innerHTML = `
+                <div class="top-user-name">
+                    <span class="top-rank-icon">${icon}</span> 
+                    @${player.username}
+                </div>
+                <div class="top-user-balance">${player.balance} ⭐</div>
+            `;
+            container.appendChild(item);
         });
+    } catch (e) {
+        console.error("Ошибка загрузки топа:", e);
+        container.innerHTML = `<div style="color:red; text-align:center;">Топ временно недоступен</div>`;
     }
-
-    // 2. Решаем, что показать пользователю
-    if (params.get('mode') === 'battle') {
-        // Если в ссылке есть mode=battle, запускаем саму игру
-        startMemoryGame();
-    } else {
-        // Иначе просто обновляем список доступных комнат в лобби
-        updateRoomsData();
-    }
-};
+}
