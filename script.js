@@ -8,7 +8,6 @@ tg.expand();
 const params = new URLSearchParams(window.location.search);
 const user = tg.initDataUnsafe?.user;
 console.log("User data from TG:", user);
-// Пробуем достать баланс отовсюду
 let rawBal = params.get('bal') || tg.initDataUnsafe?.start_param;
 let currentBalance = parseInt(rawBal) || 0;
 
@@ -17,6 +16,7 @@ let isMyTurn = false;
 let canClick = false;
 let flippedCards = [];
 let serverFlipped = [];
+let gameFinishedShown = false; // Флаг чтобы экран финала показался только раз
 const emojis = ['🍎', '🍋', '💎', '⭐', '🍀', '🔥', '👻', '🐱'];
 
 async function exitToBot() {
@@ -33,50 +33,43 @@ async function exitToBot() {
         window.Telegram.WebApp.close();
     }
 }
+
 // --- 2. ИНИЦИАЛИЗАЦИЯ ИНТЕРФЕЙСА ---
 function initUI() {
     const nameEl = document.getElementById('username');
     const balEl = document.getElementById('balance_val');
 
-    // Ставим баланс
     if (balEl) balEl.innerText = currentBalance;
 
-    // Ставим имя (если есть данные от TG)
     const user = tg.initDataUnsafe?.user;
     if (user && nameEl) {
         nameEl.innerText = user.first_name || user.username || "Игрок";
     }
 }
 
-// Ждем загрузку DOM
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initUI);
 } else {
     initUI();
 }
 
-// --- 3. НАВИГАЦИЯ И ОКНА (ТО ЧТО НЕ ОТКРЫВАЛОСЬ) ---
+// --- 3. НАВИГАЦИЯ ---
 let selectedGame = "";
 
 function openGameLobby(gameName) {
-    console.log("Opening lobby for:", gameName);
     selectedGame = gameName;
-    
     const lobbyTitle = document.getElementById('lobby-title');
     const lobbyScreen = document.getElementById('lobby-screen');
     const bottomNav = document.querySelector('.bottom-nav');
-
     if (lobbyTitle) lobbyTitle.innerText = gameName;
     if (lobbyScreen) lobbyScreen.style.display = 'block';
     if (bottomNav) bottomNav.style.display = 'none';
-    
-    updateRoomsData(); // Сразу обновляем список комнат
+    updateRoomsData();
 }
 
 function closeGameLobby() {
     const lobbyScreen = document.getElementById('lobby-screen');
     const bottomNav = document.querySelector('.bottom-nav');
-    
     if (lobbyScreen) lobbyScreen.style.display = 'none';
     if (bottomNav) bottomNav.style.display = 'flex';
 }
@@ -94,19 +87,14 @@ function closeCreateModal() {
 function switchTab(tabId, element) {
     document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-    
     const targetTab = document.getElementById(tabId);
     if (targetTab) targetTab.classList.add('active');
     if (element) element.classList.add('active');
-
-    if (tabId === 'tab-rating') {
-        loadTopUsers();
-    }
-    
+    if (tabId === 'tab-rating') loadTopUsers();
     tg.HapticFeedback.impactOccurred('light');
 }
 
-// --- 4. РАБОТА С СЕРВЕРОМ (API) ---
+// --- 4. API ---
 async function apiCall(endpoint, paramsObj) {
     const query = new URLSearchParams(paramsObj).toString();
     try {
@@ -122,7 +110,7 @@ async function updateRoomsData() {
     try {
         const response = await fetch(`${API_URL}/rooms?t=${Date.now()}`);
         activeRooms = await response.json();
-        renderRooms(); 
+        renderRooms();
     } catch (e) {
         console.error("Ошибка обновления комнат:", e);
     }
@@ -131,10 +119,8 @@ async function updateRoomsData() {
 function renderRooms() {
     const container = document.getElementById('rooms-container');
     if (!container) return;
-    
     container.innerHTML = "";
     let hasRooms = false;
-
     Object.keys(activeRooms).forEach(id => {
         const room = activeRooms[id];
         if (room.status === "waiting") {
@@ -151,7 +137,6 @@ function renderRooms() {
             container.appendChild(card);
         }
     });
-
     if (!hasRooms) {
         container.innerHTML = `<div style="text-align:center; color:gray; margin-top:20px;">Пока нет игр. Создай свою!</div>`;
     }
@@ -161,7 +146,7 @@ function renderRooms() {
 function createRoom(bet) {
     if (currentBalance < bet) return tg.showAlert("Недостаточно звёзд!");
     tg.sendData(JSON.stringify({ action: "create_room", bet: parseInt(bet) }));
-    tg.close(); 
+    tg.close();
 }
 
 function joinRoom(roomId) {
@@ -176,66 +161,59 @@ async function startMemoryGame() {
     const instruction = document.getElementById('instruction-layer');
     const screen = document.getElementById('game-screen');
 
-    // Показываем экран игры и сбрасываем сетку
     screen.style.display = 'flex';
     grid.innerHTML = '';
     grid.style.opacity = '1';
-    const data = await apiCall('api', { action: 'get_state', room_id: params.get('room_id'), user_id: user?.id });
+    gameFinishedShown = false;
+
+    const data = await apiCall('api', {
+        action: 'get_state',
+        room_id: params.get('room_id'),
+        user_id: user?.id
+    });
+
     data.board.forEach((emoji, idx) => {
         const card = document.createElement('div');
-        card.className = 'card'; 
+        card.className = 'card';
         card.innerHTML = `<div class="card-front">${emoji}</div><div class="card-back"></div>`;
         grid.appendChild(card);
     });
 
-    // --- ЭТАП 1: ИНСТРУКЦИЯ (10 секунд) ---
+    // ЭТАП 1: Инструкция (10 сек)
     instruction.style.display = 'block';
     status.innerText = "ПРАВИЛА БОЯ";
     let progress = 100;
-
     const phase1 = setInterval(() => {
-        progress -= 1; // Уменьшаем полоску
+        progress -= 1;
         timerBar.style.width = progress + "%";
-
         if (progress <= 0) {
             clearInterval(phase1);
-            startPhase2(); // Переходим к запоминанию
+            startPhase2();
         }
-    }, 100); // 100 шагов по 0.1 сек = 10 сек
+    }, 100);
 
-    // --- ЭТАП 2: ЗАПОМИНАНИЕ (10 секунд) ---
+    // ЭТАП 2: Запоминание (10 сек)
     function startPhase2() {
         instruction.style.display = 'none';
         status.innerText = "ЗАПОМИНАЙ КАРТОЧКИ!";
         progress = 100;
-        
-        // Переворачиваем все карты лицом вверх
         document.querySelectorAll('.card').forEach(c => c.classList.add('flipped'));
-
         const phase2 = setInterval(() => {
             progress -= 1;
             timerBar.style.width = progress + "%";
-
             if (progress <= 0) {
                 clearInterval(phase2);
-                startBattle(); // Начинаем саму игру
+                startBattle();
             }
         }, 100);
     }
 
-    // --- ЭТАП 3: НАЧАЛО ИГРЫ ---
+    // ЭТАП 3: Бой
     function startBattle() {
         status.innerText = "БОЙ НАЧАЛСЯ!";
-        timerBar.parentElement.style.display = 'none'; // Прячем полоску
-        
-        // Закрываем все карты назад
+        timerBar.parentElement.style.display = 'none';
         document.querySelectorAll('.card').forEach(c => c.classList.remove('flipped'));
-        
-        // Разрешаем кликать
         canClick = true;
-        isMyTurn = true; // Для теста ставим true, потом свяжем с сервером
-        
-        // Активируем клики по картам
         setupCardLogic();
         startSync();
     }
@@ -243,35 +221,20 @@ async function startMemoryGame() {
 
 function setupCardLogic() {
     const cards = document.querySelectorAll('.card');
-    
     cards.forEach((card, index) => {
         card.onclick = async () => {
-            // 1. Проверяем, можно ли вообще кликать
-            // Мы не даем кликнуть, если:
-            // - Сейчас не твой ход (isMyTurn === false)
-            // - Карта уже открыта (flipped)
-            // - Карта уже отгадана (matched)
-            // - Уже открыты две карты (ждем их закрытия сервером)
             if (!isMyTurn || card.classList.contains('flipped') || card.classList.contains('matched') || serverFlipped.length >= 2) {
-                console.log("Клик заблокирован: ход врага или карта открыта");
                 return;
             }
-
-            // 2. Визуально переворачиваем сразу для скорости (предугадываем успех)
             card.classList.add('flipped');
-            
-            // 3. Отправляем запрос на сервер
             const response = await apiCall('api', {
                 action: 'make_move',
                 room_id: params.get('room_id'),
                 user_id: user?.id,
                 index: index
             });
-
-            // 4. Если сервер сказал, что ход невозможен — возвращаем карту назад
             if (!response || response.error) {
                 card.classList.remove('flipped');
-                console.log("Сервер отклонил ход:", response?.error);
             }
         };
     });
@@ -281,43 +244,58 @@ function setupCardLogic() {
 if (params.get('mode') === 'battle') {
     startMemoryGame();
 } else {
-    
     updateRoomsData();
 }
+
 function startSync() {
-    // Ускоряем до 400мс, чтобы игра была "живой"
-    setInterval(async () => {
-        const data = await apiCall('api', { 
-            action: 'get_state', 
+    const syncInterval = setInterval(async () => {
+        const data = await apiCall('api', {
+            action: 'get_state',
             room_id: params.get('room_id'),
-            t: Date.now() // Защита от кэширования
+            user_id: user?.id,
+            t: Date.now()
         });
 
         if (!data || !data.scores) return;
         serverFlipped = data.flipped || [];
-        
+
         // 1. ПРОВЕРКА КОНЦА ИГРЫ
         if (data.status === 'finished') {
+            if (gameFinishedShown) return; // Уже показали — не трогаем
+            gameFinishedShown = true;
             canClick = false;
             isMyTurn = false;
+            clearInterval(syncInterval); // Останавливаем поллинг
 
-            // Сначала рисуем финальные карты (последняя пара должна отобразиться)
+            // Сначала рисуем финальные карты
             renderFinalCards(data);
 
-            // Ждём окончания CSS-анимации переворота (600мс) + запас 300мс
+            // Ждём анимацию переворота
             setTimeout(() => {
                 const winnerId = data.winner;
-                const isWinner = (winnerId == user?.id);
-                const winMsg = winnerId === 'draw'
-                    ? "НИЧЬЯ! 😎"
-                    : (isWinner ? "ТЫ ПОБЕДИЛ! 🏆" : "ТЫ ПРОИГРАЛ... 💀");
+                const myId = String(user?.id);
+                const isWinner = (String(winnerId) === myId);
+                const isDraw = (winnerId === 'draw');
+
+                // *** КЛЮЧЕВАЯ ПРАВКА: каждый видит СВОЙ выигрыш ***
+                let winMsg, winAmount;
+                if (isDraw) {
+                    winMsg = "НИЧЬЯ! 😎";
+                    winAmount = data.win_amount; // ставка возвращается каждому
+                } else if (isWinner) {
+                    winMsg = "ТЫ ПОБЕДИЛ! 🏆";
+                    winAmount = data.win_amount; // банк минус комиссия
+                } else {
+                    winMsg = "ТЫ ПРОИГРАЛ... 💀";
+                    winAmount = 0; // проигравший не получает ничего
+                }
 
                 const turnTxt = document.getElementById('turn-text');
                 if (turnTxt) {
-                    turnTxt.style.color = "gold";
+                    turnTxt.style.color = isDraw ? "gold" : (isWinner ? "#00ff00" : "#ff4444");
                     turnTxt.innerHTML = `
                         <div style="font-size: 22px; margin-bottom: 5px;">${winMsg}</div>
-                        <div style="font-size: 16px; color: white;">Выигрыш: <b>${data.win_amount} ⭐</b></div>
+                        <div style="font-size: 16px; color: white;">Выигрыш: <b>${winAmount} ⭐</b></div>
                         <button id="exit-btn" style="margin-top:10px; padding:8px 25px; background:#00ff00; border:none; border-radius:8px; color:black; font-weight:bold; cursor:pointer;">В ЛОББИ</button>
                     `;
                     const btn = document.getElementById('exit-btn');
@@ -328,14 +306,14 @@ function startSync() {
             return;
         }
 
-        // 2. Обновляем статус хода и счет (если игра еще идет)
-        isMyTurn = (data.current_turn == user?.id);
+        // 2. Обновляем счёт и ход
+        isMyTurn = (String(data.current_turn) === String(user?.id));
 
         const myScoreEl = document.getElementById('my-score');
         const enemyScoreEl = document.getElementById('enemy-score');
         if (myScoreEl) myScoreEl.innerText = data.scores[user?.id] || 0;
-        
-        const enemyId = Object.keys(data.scores).find(id => id != user?.id);
+
+        const enemyId = Object.keys(data.scores).find(id => String(id) !== String(user?.id));
         if (enemyId && enemyScoreEl) enemyScoreEl.innerText = data.scores[enemyId] || 0;
 
         const turnTxt = document.getElementById('turn-text');
@@ -344,19 +322,17 @@ function startSync() {
             turnTxt.style.color = isMyTurn ? "#00ff00" : "#ff0000";
         }
 
-        // 3. СИНХРОНИЗАЦИЯ КАРТ
+        // 3. Синхронизация карт
         renderFinalCards(data);
 
     }, 400);
 }
 
-// Вынес отрисовку в отдельную мини-функцию, чтобы не дублировать код
 function renderFinalCards(data) {
     const cards = document.querySelectorAll('.card');
     cards.forEach((card, idx) => {
         const isMatched = data.matched && data.matched.includes(idx);
         const isFlippedNow = data.flipped && data.flipped.includes(idx);
-
         if (isMatched) {
             card.classList.add('flipped', 'matched');
         } else if (isFlippedNow) {
@@ -366,29 +342,22 @@ function renderFinalCards(data) {
         }
     });
 }
+
 async function loadTopUsers() {
     const container = document.getElementById('top-users-list');
     if (!container) return;
-
     try {
-        // Качаем файл, который создает бот. ?v= пресекает кэширование.
         const data = await apiCall('api/top', { t: Date.now() });
-
-        container.innerHTML = ""; // Очистка
-
+        container.innerHTML = "";
         if (!data || data.length === 0) {
             container.innerHTML = `<div style="color:gray; text-align:center;">Тут пока пусто...</div>`;
             return;
         }
-
         data.forEach((player, index) => {
             const item = document.createElement('div');
-            item.className = 'top-user-item'; // Применяем класс из CSS
-
+            item.className = 'top-user-item';
             let rank = index + 1;
-            // Медальки только первым трем, остальным — точка
             let icon = rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : "•";
-
             item.innerHTML = `
                 <div class="top-user-name">
                     <span class="top-rank-icon">${icon}</span> 
@@ -399,7 +368,6 @@ async function loadTopUsers() {
             container.appendChild(item);
         });
     } catch (e) {
-        console.error("Ошибка загрузки топа:", e);
         container.innerHTML = `<div style="color:red; text-align:center;">Топ временно недоступен</div>`;
     }
 }
