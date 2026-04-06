@@ -371,3 +371,231 @@ async function loadTopUsers() {
         container.innerHTML = `<div style="color:red; text-align:center;">Топ временно недоступен</div>`;
     }
 }
+// ===== ЛОГИКА КЕЙСОВ =====
+
+// Циклы призов
+const CASES = {
+    small: {
+        cost: 3,
+        cycle: [3, 1, 5, 1, 3],   // 1-й,2-й,3-й,4-й,5-й открытый — потом снова
+        prizes: [1, 3, 5]
+    },
+    medium: {
+        cost: 5,
+        cycle: [5, 1, 7, 3, 5, 1, 10],
+        prizes: [1, 3, 5, 7, 10]
+    }
+};
+
+let caseOpening = false; // Блокировка двойного нажатия
+
+async function openCase(type) {
+    if (caseOpening) return;
+
+    const cfg = CASES[type];
+    const btn = document.getElementById(`btn-${type}`);
+    const resultEl = document.getElementById(`result-${type}`);
+    const rouletteWrap = document.getElementById(`roulette-${type}-wrap`);
+
+    // Проверка баланса
+    if (currentBalance < cfg.cost) {
+        tg.showAlert(`❌ Недостаточно звёзд! Нужно ${cfg.cost} ⭐`);
+        return;
+    }
+
+    caseOpening = true;
+    btn.disabled = true;
+    resultEl.style.display = 'none';
+
+    // Запрос к серверу — списание и получение приза
+    const resp = await apiCall('api/case', {
+        user_id: user?.id,
+        case_type: type
+    });
+
+    if (!resp || resp.error) {
+        tg.showAlert(resp?.error || '❌ Ошибка сервера');
+        btn.disabled = false;
+        caseOpening = false;
+        return;
+    }
+
+    const prize = resp.prize;
+    currentBalance = resp.new_balance;
+    document.getElementById('balance_val').innerText = currentBalance;
+
+    // Запускаем рулетку
+    rouletteWrap.style.display = 'block';
+    await spinRoulette(type, prize, cfg.prizes);
+
+    // Показываем результат
+    const sign = prize >= cfg.cost ? '🏆' : '📦';
+    resultEl.innerHTML = `${sign} Вы выиграли <b>${prize} ⭐</b>!<br><span style="font-size:14px;color:#aaa;">Баланс: ${currentBalance} ⭐</span>`;
+    resultEl.style.display = 'block';
+
+    btn.disabled = false;
+    caseOpening = false;
+}
+
+function spinRoulette(type, winPrize, allPrizes) {
+    return new Promise(resolve => {
+        const track = document.getElementById(`roulette-${type}`);
+        track.innerHTML = '';
+        track.style.transform = 'translateX(0)';
+
+        // Генерируем дорожку: ~40 элементов, в конце — выигрыш
+        const ITEM_W = 88; // ширина + отступы
+        const TOTAL = 40;
+        const items = [];
+
+        for (let i = 0; i < TOTAL; i++) {
+            // Случайные призы для "декора", последний = выигрыш
+            const p = i === TOTAL - 1 ? winPrize : allPrizes[Math.floor(Math.random() * allPrizes.length)];
+            items.push(p);
+        }
+
+        items.forEach((p, i) => {
+            const el = document.createElement('div');
+            el.className = 'roulette-item' + (i === TOTAL - 1 ? ' win-item' : '');
+            el.innerHTML = `<span style="font-size:20px;">⭐</span><span>${p}</span>`;
+            track.appendChild(el);
+        });
+
+        // Прокрутка: центр дорожки минус половина окна = позиция победителя
+        const windowW = track.parentElement.offsetWidth;
+        const targetX = -(ITEM_W * (TOTAL - 1)) + (windowW / 2) - (ITEM_W / 2);
+
+        track.style.transition = 'none';
+        track.style.transform = `translateX(0)`;
+
+        setTimeout(() => {
+            track.style.transition = 'transform 3.5s cubic-bezier(0.17, 0.67, 0.12, 1)';
+            track.style.transform = `translateX(${targetX}px)`;
+            setTimeout(resolve, 3700);
+        }, 50);
+    });
+}
+
+// ===================== КЕЙСЫ =====================
+
+const CASE_CONFIG = {
+    small:  { title: '📦 Маленький кейс', price: 3, prizes: [1, 3, 5], cycle: [3, 1, 5, 1, 3] },
+    medium: { title: '🎁 Средний кейс',   price: 5, prizes: [1, 3, 5, 7, 10], cycle: [5, 1, 7, 3, 5, 1, 10] },
+};
+
+let currentCaseType = null;
+let rouletteRunning = false;
+
+function openCase(type) {
+    if (rouletteRunning) return;
+    const cfg = CASE_CONFIG[type];
+
+    if (currentBalance < cfg.price) {
+        tg.showAlert(`❌ Недостаточно звёзд! Нужно ${cfg.price} ⭐`);
+        return;
+    }
+
+    currentCaseType = type;
+    const overlay = document.getElementById('case-overlay');
+    document.getElementById('case-overlay-title').innerText = cfg.title;
+    document.getElementById('case-result').style.display = 'none';
+    document.getElementById('case-close-btn').style.display = 'none';
+    overlay.style.display = 'flex';
+
+    buildRoulette(type);
+    spinRoulette(type);
+}
+
+function buildRoulette(type) {
+    const track = document.getElementById('roulette-track');
+    track.innerHTML = '';
+    track.style.transform = 'translateX(0)';
+
+    const cfg = CASE_CONFIG[type];
+    // Генерируем 60 плиток из призового пула рандомно
+    const pool = cfg.prizes;
+    for (let i = 0; i < 60; i++) {
+        const prize = pool[Math.floor(Math.random() * pool.length)];
+        const cell = document.createElement('div');
+        cell.className = 'roulette-cell';
+        cell.innerHTML = `<span style="font-size:22px;">⭐</span><span style="font-size:16px;font-weight:bold;">${prize}</span>`;
+        track.appendChild(cell);
+    }
+}
+
+async function spinRoulette(type) {
+    rouletteRunning = true;
+
+    // Запрос к серверу — он уже знает приз
+    const resp = await fetch(`${API_URL}/api/open_case`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: user?.id, case_type: type })
+    });
+    const result = await resp.json();
+
+    if (result.error === 'not_enough') {
+        tg.showAlert('❌ Недостаточно звёзд!');
+        closeCaseOverlay();
+        return;
+    }
+
+    const prize = result.prize;
+    const newBalance = result.new_balance;
+
+    // Подставляем приз в нужную ячейку (ячейка 45 — остановочная)
+    const track = document.getElementById('roulette-track');
+    const cells = track.querySelectorAll('.roulette-cell');
+    cells[45].innerHTML = `<span style="font-size:22px;">⭐</span><span style="font-size:16px;font-weight:bold;color:#ffcc00;">${prize}</span>`;
+    cells[45].style.border = '2px solid #ffcc00';
+    cells[45].style.background = '#222';
+
+    const cellW = 90; // ширина ячейки px
+    const centerOffset = Math.floor(track.parentElement.offsetWidth / 2) - cellW / 2;
+    const targetX = -(45 * cellW - centerOffset);
+
+    // Анимация: быстрый разгон → плавное торможение
+    let currentX = 0;
+    let speed = 0;
+    const target = targetX;
+    let startTime = null;
+    const duration = 3500; // мс
+
+    function animate(ts) {
+        if (!startTime) startTime = ts;
+        const elapsed = ts - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        // ease-out кубическая
+        const ease = 1 - Math.pow(1 - progress, 3);
+        currentX = ease * target;
+        track.style.transform = `translateX(${currentX}px)`;
+
+        if (progress < 1) {
+            requestAnimationFrame(animate);
+        } else {
+            // Финал
+            setTimeout(() => showCaseResult(prize, newBalance), 300);
+        }
+    }
+
+    requestAnimationFrame(animate);
+}
+
+function showCaseResult(prize, newBalance) {
+    currentBalance = newBalance;
+    const balEl = document.getElementById('balance_val');
+    if (balEl) balEl.innerText = currentBalance;
+
+    document.getElementById('case-prize-text').innerText = `🎉 Вы выиграли ${prize} ⭐`;
+    document.getElementById('case-balance-text').innerText = `Ваш баланс: ${newBalance} ⭐`;
+    document.getElementById('case-result').style.display = 'block';
+    document.getElementById('case-close-btn').style.display = 'block';
+    rouletteRunning = false;
+    tg.HapticFeedback.notificationOccurred('success');
+}
+
+function closeCaseOverlay() {
+    document.getElementById('case-overlay').style.display = 'none';
+    rouletteRunning = false;
+    currentCaseType = null;
+}
