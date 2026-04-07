@@ -374,108 +374,6 @@ async function loadTopUsers() {
 // ===== ЛОГИКА КЕЙСОВ =====
 
 // Циклы призов
-const CASES = {
-    small: {
-        cost: 3,
-        cycle: [3, 1, 5, 1, 3],   // 1-й,2-й,3-й,4-й,5-й открытый — потом снова
-        prizes: [1, 3, 5]
-    },
-    medium: {
-        cost: 5,
-        cycle: [5, 1, 7, 3, 5, 1, 10],
-        prizes: [1, 3, 5, 7, 10]
-    }
-};
-
-let caseOpening = false; // Блокировка двойного нажатия
-
-async function openCase(type) {
-    if (caseOpening) return;
-
-    const cfg = CASES[type];
-    const btn = document.getElementById(`btn-${type}`);
-    const resultEl = document.getElementById(`result-${type}`);
-    const rouletteWrap = document.getElementById(`roulette-${type}-wrap`);
-
-    // Проверка баланса
-    if (currentBalance < cfg.cost) {
-        tg.showAlert(`❌ Недостаточно звёзд! Нужно ${cfg.cost} ⭐`);
-        return;
-    }
-
-    caseOpening = true;
-    btn.disabled = true;
-    resultEl.style.display = 'none';
-
-    // Запрос к серверу — списание и получение приза
-    const resp = await apiCall('api/case', {
-        user_id: user?.id,
-        case_type: type
-    });
-
-    if (!resp || resp.error) {
-        tg.showAlert(resp?.error || '❌ Ошибка сервера');
-        btn.disabled = false;
-        caseOpening = false;
-        return;
-    }
-
-    const prize = resp.prize;
-    currentBalance = resp.new_balance;
-    document.getElementById('balance_val').innerText = currentBalance;
-
-    // Запускаем рулетку
-    rouletteWrap.style.display = 'block';
-    await spinRoulette(type, prize, cfg.prizes);
-
-    // Показываем результат
-    const sign = prize >= cfg.cost ? '🏆' : '📦';
-    resultEl.innerHTML = `${sign} Вы выиграли <b>${prize} ⭐</b>!<br><span style="font-size:14px;color:#aaa;">Баланс: ${currentBalance} ⭐</span>`;
-    resultEl.style.display = 'block';
-
-    btn.disabled = false;
-    caseOpening = false;
-}
-
-function spinRoulette(type, winPrize, allPrizes) {
-    return new Promise(resolve => {
-        const track = document.getElementById(`roulette-${type}`);
-        track.innerHTML = '';
-        track.style.transform = 'translateX(0)';
-
-        // Генерируем дорожку: ~40 элементов, в конце — выигрыш
-        const ITEM_W = 88; // ширина + отступы
-        const TOTAL = 40;
-        const items = [];
-
-        for (let i = 0; i < TOTAL; i++) {
-            // Случайные призы для "декора", последний = выигрыш
-            const p = i === TOTAL - 1 ? winPrize : allPrizes[Math.floor(Math.random() * allPrizes.length)];
-            items.push(p);
-        }
-
-        items.forEach((p, i) => {
-            const el = document.createElement('div');
-            el.className = 'roulette-item' + (i === TOTAL - 1 ? ' win-item' : '');
-            el.innerHTML = `<span style="font-size:20px;">⭐</span><span>${p}</span>`;
-            track.appendChild(el);
-        });
-
-        // Прокрутка: центр дорожки минус половина окна = позиция победителя
-        const windowW = track.parentElement.offsetWidth;
-        const targetX = -(ITEM_W * (TOTAL - 1)) + (windowW / 2) - (ITEM_W / 2);
-
-        track.style.transition = 'none';
-        track.style.transform = `translateX(0)`;
-
-        setTimeout(() => {
-            track.style.transition = 'transform 3.5s cubic-bezier(0.17, 0.67, 0.12, 1)';
-            track.style.transform = `translateX(${targetX}px)`;
-            setTimeout(resolve, 3700);
-        }, 50);
-    });
-}
-
 // ===================== КЕЙСЫ =====================
 
 const CASE_CONFIG = {
@@ -526,16 +424,20 @@ function buildRoulette(type) {
 async function spinRoulette(type) {
     rouletteRunning = true;
 
-    // Запрос к серверу — он уже знает приз
-    const resp = await fetch(`${API_URL}/api/open_case`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: user?.id, case_type: type })
-    });
-    const result = await resp.json();
+    // Запрос к серверу через GET (без CORS preflight)
+    const uid = user?.id || params.get('u');
+    let result;
+    try {
+        const resp = await fetch(`${API_URL}/api/case?user_id=${uid}&case_type=${type}`);
+        result = await resp.json();
+    } catch(e) {
+        tg.showAlert('❌ Ошибка сети, попробуйте ещё раз');
+        closeCaseOverlay();
+        return;
+    }
 
-    if (result.error === 'not_enough') {
-        tg.showAlert('❌ Недостаточно звёзд!');
+    if (result.error) {
+        tg.showAlert(result.error);
         closeCaseOverlay();
         return;
     }
