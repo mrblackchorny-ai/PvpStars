@@ -424,7 +424,7 @@ function buildRoulette(type) {
 async function spinRoulette(type) {
     rouletteRunning = true;
 
-    // Запрос к серверу через GET (без CORS preflight)
+    // Запрос к серверу через GET
     const uid = user?.id || params.get('u');
     let result;
     try {
@@ -445,37 +445,37 @@ async function spinRoulette(type) {
     const prize = result.prize;
     const newBalance = result.new_balance;
 
-    // Подставляем приз в нужную ячейку (ячейка 45 — остановочная)
+    // БАЛАНС: ставим правильный приз в СТОП-ячейку (индекс 44, с 0)
+    // buildRoulette уже построил 60 ячеек, заменяем ячейку 44
+    const STOP_IDX = 44;
     const track = document.getElementById('roulette-track');
     const cells = track.querySelectorAll('.roulette-cell');
-    cells[45].innerHTML = `<span style="font-size:22px;">⭐</span><span style="font-size:16px;font-weight:bold;color:#ffcc00;">${prize}</span>`;
-    cells[45].style.border = '2px solid #ffcc00';
-    cells[45].style.background = '#222';
+    cells[STOP_IDX].innerHTML = `<span style="font-size:22px;">⭐</span><span style="font-size:16px;font-weight:bold;color:#ffcc00;">${prize}</span>`;
+    cells[STOP_IDX].style.border = '2px solid #ffcc00';
+    cells[STOP_IDX].style.background = '#333';
 
-    const cellW = 90; // ширина ячейки px
-    const centerOffset = Math.floor(track.parentElement.offsetWidth / 2) - cellW / 2;
-    const targetX = -(45 * cellW - centerOffset);
+    // Вычисляем точную позицию: центр контейнера должен совпасть с центром STOP_IDX ячейки
+    const cellW = cells[0].offsetWidth || 80;
+    const containerW = track.parentElement.offsetWidth;
+    // Позиция левого края STOP_IDX ячейки от начала track
+    const cellLeft = STOP_IDX * cellW;
+    // Чтобы центр ячейки оказался по центру контейнера:
+    const targetX = -(cellLeft - (containerW / 2) + (cellW / 2));
 
-    // Анимация: быстрый разгон → плавное торможение
-    let currentX = 0;
-    let speed = 0;
-    const target = targetX;
+    // Анимация ease-out
     let startTime = null;
-    const duration = 3500; // мс
+    const duration = 3500;
 
     function animate(ts) {
         if (!startTime) startTime = ts;
         const elapsed = ts - startTime;
         const progress = Math.min(elapsed / duration, 1);
-        // ease-out кубическая
         const ease = 1 - Math.pow(1 - progress, 3);
-        currentX = ease * target;
-        track.style.transform = `translateX(${currentX}px)`;
+        track.style.transform = `translateX(${ease * targetX}px)`;
 
         if (progress < 1) {
             requestAnimationFrame(animate);
         } else {
-            // Финал
             setTimeout(() => showCaseResult(prize, newBalance), 300);
         }
     }
