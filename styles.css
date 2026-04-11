@@ -1,273 +1,582 @@
-/* БАЗОВЫЕ СТИЛИ (Дизайн будешь менять здесь) */
-        body {
-            background: url(img/ChatGPT-Image-10-мар.-2026-г._-16_18_36.webp);
-            background-attachment: fixed; 
-            background-position: center;  
-            background-size: cover;       
-            background-repeat: no-repeat;
-            color: white;
-            font-family: 'Segoe UI', sans-serif;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-        }
-        p{
-            color: black;
-            font-weight: 700;
-        }
+@import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800;900&display=swap');
 
-        /* Шапка */
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 15px 20px;
-            color: black;
-            background: rgb(255, 255, 255);
-            border-bottom: 1px solid rgb(255, 255, 255);
-        }
+/* ===== CSS ПЕРЕМЕННЫЕ ===== */
+:root {
+    --purple:    #6B2FD9;
+    --purple-l:  #8B5CF6;
+    --purple-d:  #3D1A8A;
+    --orange:    #FF7A00;
+    --orange-l:  #FFA040;
+    --gold:      #FFD700;
+    --gold-d:    #E5A800;
+    --cyan:      #00D4FF;
+    --red:       #FF3B5C;
+    --green:     #2ECC71;
+    --dark:      #1A0A40;
+    --dark2:     #240D55;
+    --card-bg:   #2A1060;
+    --border:    #5A2FC0;
+    --text:      #F0E6FF;
+    --text-dim:  #A080D0;
 
-        .balance-pill {
-            background: #ffcc00;
-            color: black;
-            padding: 5px 15px;
-            border-radius: 20px;
-            font-weight: bold;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
+    --shadow-orange: 0 4px 0 #C05000, 0 6px 20px rgba(255,120,0,0.4);
+    --shadow-purple: 0 4px 0 #3D1A8A, 0 6px 20px rgba(107,47,217,0.5);
+    --shadow-gold:   0 4px 0 #B8860B, 0 6px 20px rgba(255,215,0,0.4);
+    --outline: -2px -2px 0 #1A0A40, 2px -2px 0 #1A0A40, -2px 2px 0 #1A0A40, 2px 2px 0 #1A0A40;
+}
 
-        /* Контентные области */
-        .content {
-            flex: 1;
-            overflow-y: auto;
-            padding: 20px;
-            padding-bottom: 80px; /* Чтобы не перекрывало меню */
-        }
+/* ===== БАЗОВЫЕ СТИЛИ ===== */
+* { box-sizing: border-box; margin: 0; padding: 0; }
 
-        .tab-content {
-            display: none; /* Скрыто по умолчанию */
-        }
+body {
+    background: var(--dark);
+    background-image:
+        radial-gradient(ellipse at 20% 20%, rgba(107,47,217,0.3) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 80%, rgba(255,122,0,0.2) 0%, transparent 50%),
+        radial-gradient(ellipse at 50% 50%, rgba(0,212,255,0.1) 0%, transparent 70%);
+    color: var(--text);
+    font-family: 'Nunito', sans-serif;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+}
 
-        .tab-content.active {
-            display: block; /* Показываем только активную */
-        }
-        #tab-rating{
-            background-color: white;
-            border-radius: 10px;
-            padding-bottom: 20px;
-            text-align: center;
-        }
-        /* Карточка игры */
-        .game-card {
-            background: #17212b;
-            border-radius: 15px;
-            margin-bottom: 15px;
-            border: 1px solid #2481cc;
-            padding: 15px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
+/* Звёздный фон */
+body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+        radial-gradient(1px 1px at 10% 15%, rgba(255,255,255,0.6) 0%, transparent 100%),
+        radial-gradient(1px 1px at 30% 40%, rgba(255,255,255,0.4) 0%, transparent 100%),
+        radial-gradient(1.5px 1.5px at 50% 10%, rgba(255,215,0,0.5) 0%, transparent 100%),
+        radial-gradient(1px 1px at 70% 60%, rgba(255,255,255,0.3) 0%, transparent 100%),
+        radial-gradient(1.5px 1.5px at 85% 25%, rgba(0,212,255,0.4) 0%, transparent 100%),
+        radial-gradient(1px 1px at 15% 70%, rgba(255,255,255,0.5) 0%, transparent 100%),
+        radial-gradient(1px 1px at 60% 85%, rgba(255,255,255,0.3) 0%, transparent 100%),
+        radial-gradient(1.5px 1.5px at 90% 90%, rgba(255,215,0,0.4) 0%, transparent 100%),
+        radial-gradient(1px 1px at 40% 55%, rgba(255,255,255,0.2) 0%, transparent 100%),
+        radial-gradient(1px 1px at 75% 45%, rgba(255,255,255,0.4) 0%, transparent 100%);
+    pointer-events: none;
+    z-index: 0;
+}
 
-        .btn-play {
-            background: #ffcc00;
-            color: black;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 10px;
-            font-weight: bold;
-        }
+p { color: var(--text); font-weight: 700; }
 
-        /* Нижнее меню */
-        .bottom-nav {
-            position: fixed;
-            bottom: 0;
-            left: 0;           /* ОБЯЗАТЕЛЬНО: прижимаем к левому краю */
-            width: 100%;       /* Занимает всю ширину */
-            height: 65px;
-            background: #17212b;
-            display: flex;
-            justify-content: space-around; /* Равномерно распределяем кнопки */
-            align-items: center;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-            z-index: 1000;     /* Чтобы меню всегда было поверх контента */
-            box-sizing: border-box; /* Чтобы границы не расширяли меню за пределы экрана */
-        }
-
-        .nav-item {
-            flex: 1;           /* Каждая кнопка занимает равное место */
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            color: #888;
-            font-size: 12px;
-            cursor: pointer;
-            height: 100%;      /* Растягиваем на всю высоту таббара */
-        }
-
-        .nav-item.active {
-            color: #2481cc;
-        }
-
-        .nav-icon {
-            font-size: 20px;
-            margin-bottom: 3px;
-        }
-        h2{
-            color: black;
-            text-align: center;
-        }
-.game-card-main {
-    background: #222;
-    border-radius: 15px;
-    padding: 20px;
+/* ===== ШАПКА ===== */
+.header {
+    position: relative;
+    z-index: 10;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border: 1px solid #333;
-    margin-bottom: 15px;
+    padding: 12px 18px;
+    background: linear-gradient(135deg, var(--purple-d) 0%, var(--purple) 100%);
+    border-bottom: 3px solid var(--gold);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+}
+
+.header::after {
+    content: '';
+    position: absolute;
+    bottom: -6px;
+    left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--orange), var(--gold), var(--cyan), var(--gold), var(--orange));
+    background-size: 200%;
+    animation: shimmer 3s linear infinite;
+}
+
+@keyframes shimmer {
+    0% { background-position: 200% center; }
+    100% { background-position: -200% center; }
+}
+
+#username {
+    font-family: 'Fredoka One', cursive;
+    font-size: 16px;
+    color: var(--gold);
+    text-shadow: var(--outline);
+    letter-spacing: 0.5px;
+}
+
+.balance-pill {
+    background: linear-gradient(135deg, var(--orange) 0%, var(--gold) 100%);
+    color: var(--dark);
+    padding: 6px 16px;
+    border-radius: 30px;
+    font-family: 'Fredoka One', cursive;
+    font-size: 16px;
+    border: 2px solid var(--dark);
+    box-shadow: var(--shadow-orange);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    transition: transform 0.1s;
+}
+
+.balance-pill:active { transform: scale(0.95); }
+
+/* ===== КОНТЕНТ ===== */
+.content {
+    position: relative;
+    z-index: 1;
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    padding-bottom: 85px;
+    scrollbar-width: none;
+}
+.content::-webkit-scrollbar { display: none; }
+
+.tab-content { display: none; }
+.tab-content.active { display: block; animation: fadeIn 0.25s ease; }
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ===== ЗАГОЛОВКИ ===== */
+h2 {
+    font-family: 'Fredoka One', cursive;
+    color: var(--gold);
+    text-align: center;
+    font-size: 22px;
+    text-shadow: var(--outline);
+    letter-spacing: 1px;
+}
+
+/* ===== КНОПКА ОСНОВНАЯ ===== */
+.btn-play {
+    background: linear-gradient(135deg, var(--orange) 0%, var(--gold) 100%);
+    color: var(--dark);
+    border: 2px solid var(--dark);
+    padding: 12px 22px;
+    border-radius: 14px;
+    font-family: 'Fredoka One', cursive;
+    font-size: 15px;
+    letter-spacing: 0.5px;
+    box-shadow: var(--shadow-orange);
     cursor: pointer;
+    transition: transform 0.1s, box-shadow 0.1s;
+}
+
+.btn-play:active {
+    transform: translateY(3px);
+    box-shadow: 0 1px 0 #C05000;
+}
+
+/* ===== КАРТОЧКА ИГРЫ (главная) ===== */
+.game-card-main {
+    background: linear-gradient(135deg, var(--card-bg) 0%, var(--purple-d) 100%);
+    border-radius: 20px;
+    padding: 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border: 2.5px solid var(--purple-l);
+    margin-bottom: 14px;
+    cursor: pointer;
+    box-shadow: 0 4px 0 var(--purple-d), 0 8px 24px rgba(0,0,0,0.4);
+    transition: transform 0.1s, box-shadow 0.1s;
+    position: relative;
+    overflow: hidden;
+}
+
+.game-card-main::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+}
+
+.game-card-main:active {
+    transform: translateY(3px);
+    box-shadow: 0 1px 0 var(--purple-d), 0 4px 12px rgba(0,0,0,0.4);
 }
 
 .game-info {
     display: flex;
     align-items: center;
-    gap: 15px;
+    gap: 14px;
 }
 
 .game-icon {
-    font-size: 32px;
+    font-size: 38px;
+    filter: drop-shadow(0 2px 6px rgba(0,0,0,0.5));
+    animation: bounce-icon 2s ease-in-out infinite;
+}
+
+@keyframes bounce-icon {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-4px); }
+}
+
+.game-info div div:first-child {
+    font-family: 'Fredoka One', cursive;
+    font-size: 18px;
+    color: var(--gold);
+    text-shadow: var(--outline);
+}
+
+.game-info div div:last-child {
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-top: 2px;
 }
 
 .online-badge {
-    background: #1a1a1a;
-    color: #2ecc71;
+    background: rgba(46, 204, 113, 0.15);
+    color: var(--green);
     font-size: 11px;
-    padding: 4px 10px;
+    font-weight: 800;
+    padding: 5px 12px;
     border-radius: 20px;
-    border: 1px solid #2ecc71;
+    border: 1.5px solid var(--green);
+    animation: pulse-green 2s ease-in-out infinite;
 }
 
-#lobby-screen{
-    background-attachment: fixed; 
-    background-position: center;  
-    background-size: cover;       
-    background-repeat: no-repeat;
-}
-.rooms-count{
-    color: yellow;
-}
-/* Упрощенная сетка, которая точно не перекрывает кнопки */
-.memory-grid {
-    display: grid !important; /* Принудительно включаем сетку */
-    grid-template-columns: repeat(4, 1fr) !important; /* Строго 4 колонки */
-    grid-template-rows: repeat(4, 1fr) !important;    /* Строго 4 ряда */
-    gap: 8px;           /* Расстояние между карточками */
-    width: 100%;
-    aspect-ratio: 1 / 1; /* Делаем поле квадратным */
-    margin: 0 auto;
+@keyframes pulse-green {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(46,204,113,0.4); }
+    50% { box-shadow: 0 0 0 6px rgba(46,204,113,0); }
 }
 
-/* Контейнер для 3D эффекта */
-.card {
-    aspect-ratio: 1/1;
-    position: relative;
-    transform-style: preserve-3d;
-    transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-    cursor: pointer;
+/* ===== ЛОББИ ===== */
+#lobby-screen {
+    background: linear-gradient(160deg, var(--dark) 0%, var(--dark2) 100%);
+    background-image:
+        radial-gradient(ellipse at 20% 20%, rgba(107,47,217,0.25) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 80%, rgba(255,122,0,0.15) 0%, transparent 50%);
 }
 
-/* Класс для переворота */
-.card.flipped {
-    transform: rotateY(180deg);
-}
+#lobby-screen h2 { color: var(--gold); }
 
-.card-front, .card-back {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    backface-visibility: hidden;
-    border-radius: 8px;
+/* ===== КАРТОЧКИ КОМНАТ ===== */
+.game-card {
+    background: linear-gradient(135deg, var(--card-bg), var(--purple-d));
+    border-radius: 18px;
+    margin-bottom: 12px;
+    border: 2px solid var(--border);
+    padding: 14px 16px;
     display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 4px 0 var(--purple-d), 0 6px 16px rgba(0,0,0,0.3);
+}
+
+/* ===== НИЖНЕЕ МЕНЮ ===== */
+.bottom-nav {
+    position: fixed;
+    bottom: 0; left: 0;
+    width: 100%;
+    height: 68px;
+    background: linear-gradient(135deg, var(--purple-d) 0%, var(--dark2) 100%);
+    border-top: 2.5px solid var(--gold);
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    z-index: 1000;
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.5);
+}
+
+.bottom-nav::before {
+    content: '';
+    position: absolute;
+    top: -5px; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--orange), var(--gold), var(--cyan), var(--gold), var(--orange));
+    background-size: 200%;
+    animation: shimmer 3s linear infinite;
+}
+
+.nav-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    font-size: 24px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    color: var(--text-dim);
+    font-size: 10px;
+    font-weight: 800;
+    cursor: pointer;
+    height: 100%;
+    gap: 2px;
+    transition: color 0.2s, transform 0.1s;
+    font-family: 'Nunito', sans-serif;
 }
 
-/* Лицо (белое с эмодзи) */
-.card-front {
-    background: #fff;
-    transform: rotateY(180deg); /* Повернуто изначально */
-    color: black;
+.nav-item:active { transform: scale(0.9); }
+
+.nav-item.active {
+    color: var(--gold);
 }
 
-/* Рубашка (голубая) */
-.card-back {
-    background: #b3e5fc;
-    border: 2px solid #81d4fa;
+.nav-item.active .nav-icon {
+    filter: drop-shadow(0 0 6px var(--gold));
+    animation: icon-pop 0.3s cubic-bezier(0.34,1.56,0.64,1);
 }
 
-.card.matched {
-    transform: rotateY(180deg) !important; 
-    
-    /* Убираем затемнение (если оно было) */
-    opacity: 1 !important; 
-    filter: none !important;
+@keyframes icon-pop {
+    from { transform: scale(0.7); }
+    to   { transform: scale(1); }
 }
-/* Специальный стиль для карточки в топе */
+
+.nav-icon {
+    font-size: 22px;
+    line-height: 1;
+}
+
+/* ===== ТАБЫ РЕЙТИНГ И ПРОФИЛЬ ===== */
+#tab-rating {
+    background: linear-gradient(135deg, var(--card-bg), var(--purple-d));
+    border-radius: 20px;
+    padding: 16px 0 20px;
+    border: 2px solid var(--border);
+    box-shadow: 0 4px 0 var(--purple-d);
+}
+
+#tab-profile {
+    text-align: center;
+}
+
+#tab-profile h2 { margin-bottom: 12px; }
+
+#tab-profile p {
+    color: var(--text-dim);
+    font-size: 16px;
+    margin-bottom: 20px;
+}
+
+/* ===== ТОП СПИСОК ===== */
 .top-user-item {
     display: flex !important;
     justify-content: space-between !important;
     align-items: center !important;
-    background: #f8f9fa !important; /* Светло-серый фон, чтобы выделялся на белом табе */
-    padding: 12px 15px !important;
-    border-radius: 12px !important;
-    margin: 8px 10px !important;
-    border: 1px solid #ddd !important;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05) !important;
+    background: rgba(255,255,255,0.05) !important;
+    padding: 12px 16px !important;
+    border-radius: 14px !important;
+    margin: 8px 12px !important;
+    border: 1.5px solid rgba(255,215,0,0.2) !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2) !important;
+    transition: transform 0.1s !important;
 }
 
 .top-user-name {
-    color: #1a1a1a !important; /* Глубокий черный */
-    font-weight: 700 !important;
+    color: var(--text) !important;
+    font-weight: 800 !important;
+    font-size: 14px !important;
 }
 
 .top-user-balance {
-    color: #b8860b !important; /* Темное золото */
-    font-weight: 800 !important;
+    color: var(--gold) !important;
+    font-family: 'Fredoka One', cursive !important;
+    font-size: 16px !important;
+    text-shadow: 0 0 10px rgba(255,215,0,0.5) !important;
 }
 
 .top-rank-icon {
     margin-right: 8px;
-    font-size: 1.1em;
+    font-size: 1.2em;
 }
-/* ===== КЕЙСЫ ===== */
-.case-card {
-    background: #222;
-    border-radius: 15px;
-    padding: 18px;
+
+/* ===== МОДАЛЬНОЕ ОКНО (СТАВКА) ===== */
+#modal-overlay {
+    backdrop-filter: blur(8px);
+}
+
+#modal-overlay > div {
+    background: linear-gradient(135deg, var(--dark2), var(--purple-d)) !important;
+    border: 2.5px solid var(--gold) !important;
+    border-radius: 24px !important;
+    box-shadow: 0 8px 0 var(--purple-d), 0 16px 40px rgba(0,0,0,0.6) !important;
+}
+
+#modal-overlay h3 {
+    font-family: 'Fredoka One', cursive;
+    color: var(--gold) !important;
+    font-size: 20px;
+    text-shadow: var(--outline);
+}
+
+/* ===== ИГРОВОЙ ЭКРАН ===== */
+#game-screen {
+    background: linear-gradient(160deg, var(--dark) 0%, #0D0525 100%);
+}
+
+#scores-container {
+    background: rgba(107,47,217,0.2) !important;
+    border: 1.5px solid var(--border);
+    border-radius: 16px !important;
+}
+
+#player1-box {
+    border-bottom: 3px solid var(--cyan) !important;
+}
+
+#my-score, #enemy-score {
+    font-family: 'Fredoka One', cursive;
+    font-size: 28px;
+    color: var(--gold);
+}
+
+#turn-text {
+    font-family: 'Fredoka One', cursive;
+    font-size: 15px;
+    letter-spacing: 1px;
+}
+
+#game-status {
+    font-family: 'Fredoka One', cursive !important;
+    color: var(--gold) !important;
+    text-shadow: var(--outline);
+}
+
+/* ===== ИНСТРУКЦИЯ ===== */
+#instruction-layer {
+    background: linear-gradient(135deg, rgba(26,10,64,0.97), rgba(36,13,85,0.97)) !important;
+    border: 2.5px solid var(--gold) !important;
+    box-shadow: 0 0 40px rgba(255,215,0,0.2) !important;
+}
+
+#instruction-layer h2 {
+    text-shadow: 0 0 20px rgba(255,215,0,0.5);
+}
+
+/* ===== ПОЛЕ КАРТОЧЕК ===== */
+.memory-grid {
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr) !important;
+    grid-template-rows: repeat(4, 1fr) !important;
+    gap: 8px;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    margin: 0 auto;
+    padding: 4px;
+}
+
+.card {
+    aspect-ratio: 1/1;
+    position: relative;
+    transform-style: preserve-3d;
+    transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+    filter: drop-shadow(0 3px 6px rgba(0,0,0,0.4));
+}
+
+.card.flipped { transform: rotateY(180deg); }
+
+.card-front, .card-back {
+    position: absolute;
+    width: 100%; height: 100%;
+    backface-visibility: hidden;
+    border-radius: 12px;
     display: flex;
     align-items: center;
-    gap: 15px;
-    border: 1px solid #444;
-    margin-bottom: 15px;
-    cursor: pointer;
+    justify-content: center;
+    font-size: 26px;
 }
-.case-card:active { opacity: 0.85; }
-.case-icon { font-size: 40px; }
-.case-info { flex: 1; }
-.case-title { font-weight: bold; font-size: 16px; color: white; }
-.case-price { font-size: 13px; color: #ffcc00; margin: 3px 0; }
-.case-prizes { font-size: 12px; color: #aaa; }
-.case-btn { white-space: nowrap; font-size: 13px; padding: 8px 14px; }
 
-/* Рулетка */
+.card-front {
+    background: linear-gradient(135deg, #2A1060, #1A0A40);
+    transform: rotateY(180deg);
+    border: 2px solid var(--gold);
+    box-shadow: inset 0 0 10px rgba(255,215,0,0.1);
+}
+
+.card-back {
+    background: linear-gradient(135deg, var(--purple) 0%, var(--purple-d) 100%);
+    border: 2px solid var(--purple-l);
+    position: relative;
+    overflow: hidden;
+}
+
+.card-back::after {
+    content: '⭐';
+    font-size: 20px;
+    opacity: 0.2;
+}
+
+.card.matched {
+    transform: rotateY(180deg) !important;
+    opacity: 1 !important;
+    filter: drop-shadow(0 0 8px rgba(255,215,0,0.6)) !important;
+}
+
+/* ===== КЕЙСЫ ===== */
+#tab-cases h2 { margin-bottom: 16px; }
+
+.case-card {
+    background: linear-gradient(135deg, var(--card-bg), var(--purple-d));
+    border-radius: 20px;
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    border: 2px solid var(--border);
+    margin-bottom: 14px;
+    cursor: pointer;
+    box-shadow: 0 4px 0 var(--purple-d), 0 8px 20px rgba(0,0,0,0.3);
+    transition: transform 0.1s, box-shadow 0.1s;
+    position: relative;
+    overflow: hidden;
+}
+
+.case-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent);
+}
+
+.case-card:active {
+    transform: translateY(3px);
+    box-shadow: 0 1px 0 var(--purple-d);
+}
+
+.case-icon { font-size: 42px; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.5)); }
+
+.case-info { flex: 1; }
+
+.case-title {
+    font-family: 'Fredoka One', cursive;
+    font-size: 17px;
+    color: var(--gold);
+    text-shadow: var(--outline);
+}
+
+.case-price {
+    font-size: 13px;
+    color: var(--orange-l);
+    font-weight: 800;
+    margin: 3px 0;
+}
+
+.case-prizes {
+    font-size: 12px;
+    color: var(--text-dim);
+}
+
+.case-btn {
+    white-space: nowrap;
+    font-size: 13px;
+    padding: 8px 14px;
+}
+
+/* ===== РУЛЕТКА ===== */
+#case-overlay {
+    backdrop-filter: blur(10px);
+    background: rgba(10,4,30,0.95) !important;
+}
+
+#case-overlay h2 {
+    text-shadow: 0 0 20px rgba(255,215,0,0.5);
+    font-size: 20px;
+}
+
 .roulette-cell {
     min-width: 80px;
     height: 100px;
@@ -275,8 +584,40 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    background: #1a1a1a;
-    border-right: 1px solid #333;
+    background: linear-gradient(135deg, var(--card-bg), var(--dark2));
+    border-right: 1px solid var(--border);
     gap: 4px;
     flex-shrink: 0;
+}
+
+/* ===== ЛОББИ ЭКРАН ===== */
+#lobby-screen button.btn-play {
+    width: 100%;
+    margin-bottom: 16px;
+    font-size: 16px;
+    padding: 14px;
+}
+
+#lobby-screen h3 {
+    font-family: 'Fredoka One', cursive;
+    color: var(--text-dim);
+    font-size: 13px;
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 12px;
+}
+
+/* ===== СКРОЛЛ ===== */
+#tab-rating .top-users-list,
+#rooms-container { scrollbar-width: none; }
+
+/* ===== АНИМАЦИИ ПОЯВЛЕНИЯ ===== */
+.game-card-main, .case-card, .top-user-item {
+    animation: slideUp 0.3s ease both;
+}
+
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
 }
