@@ -126,13 +126,16 @@ function renderRooms() {
         if (room.status === "waiting") {
             hasRooms = true;
             const card = document.createElement('div');
-            card.className = 'game-card-main';
+            card.className = 'room-card';
             card.innerHTML = `
-                <div class="room-info">
-                    <b>Ставка: ${room.bet} ⭐</b><br>
-                    <small>Создатель: ${room.creator_name}</small>
+                <div style="display:flex; align-items:center; gap:12px; flex:1;">
+                    <div style="font-size:28px;">⚔️</div>
+                    <div>
+                        <div style="font-weight:800; font-size:15px; color:#FFD700;">Ставка: ${room.bet} ⭐</div>
+                        <div style="font-size:12px; color:#A080D0; margin-top:2px;">👤 ${room.creator_name}</div>
+                    </div>
                 </div>
-                <button class="btn-play" onclick="joinRoom('${id}')">ВХОД</button>
+                <button class="btn-join" onclick="joinRoom('${id}')">ВОЙТИ</button>
             `;
             container.appendChild(card);
         }
