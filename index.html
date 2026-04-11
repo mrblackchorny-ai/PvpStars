@@ -6,191 +6,192 @@
     <title>PVP STAR ARENA</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link rel="stylesheet" href="styles.css">
-<style>
-/* ===== КЕЙСЫ ===== */
-.case-card {
-    background: #222;
-    border-radius: 15px;
-    padding: 18px;
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    border: 1px solid #444;
-    margin-bottom: 15px;
-    cursor: pointer;
-}
-.case-card:active { opacity: 0.85; }
-.case-icon { font-size: 40px; }
-.case-info { flex: 1; }
-.case-title { font-weight: bold; font-size: 16px; color: white; }
-.case-price { font-size: 13px; color: #ffcc00; margin: 3px 0; }
-.case-prizes { font-size: 12px; color: #aaa; }
-.case-btn { white-space: nowrap; font-size: 13px; padding: 8px 14px; }
-
-/* Рулетка */
-.roulette-cell {
-    min-width: 80px;
-    height: 100px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    background: #1a1a1a;
-    border-right: 1px solid #333;
-    gap: 4px;
-    flex-shrink: 0;
-}
-</style>
 </head>
 <body>
 
+    <!-- ШАПКА -->
     <div class="header">
-        <div id="username" style="font-weight: bold;">Игрок</div>
+        <div style="display:flex; align-items:center; gap:8px;">
+            <span style="font-size:22px;">⚔️</span>
+            <div id="username" style="font-weight:bold;">Игрок</div>
+        </div>
         <div class="balance-pill">
-            <span id="balance_val">0</span> ⭐
+            <span>⭐</span>
+            <span id="balance_val">0</span>
         </div>
     </div>
 
     <div class="content">
+
+        <!-- ВКЛ ИГРЫ -->
         <div id="tab-games" class="tab-content active">
-            <h2 style="margin: 0 0 15px 0;">PVP Игры</h2>
+            <h2 style="margin: 0 0 16px 0;">⚔️ PVP Игры</h2>
             <div class="game-card-main" onclick="openGameLobby('Memory Duel')">
                 <div class="game-info">
                     <span class="game-icon">🧠</span>
                     <div>
-                        <div style="font-weight: bold; font-size: 18px;">Memory Duel</div>
-                        <div style="font-size: 12px; color: #888;">Найди все пары быстрее врага</div>
+                        <div style="font-weight:bold; font-size:18px;">Memory Duel</div>
+                        <div style="font-size:12px; color:#A080D0;">Найди все пары быстрее врага</div>
                     </div>
                 </div>
                 <div class="online-badge">● Online</div>
             </div>
         </div>
 
-        <div id="lobby-screen" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background-color: cornflowerblue; z-index:500; padding: 20px; box-sizing: border-box;">
-            <div style="display: flex; align-items: center; margin-bottom: 20px;">
-                <button onclick="closeGameLobby()" style="background:none; border:none; color:black; font-size: 24px; padding: 0 15px 0 0;">←</button>
-                <h2 id="lobby-title" style="margin:0;">Lobby</h2>
+        <!-- ЛОББИ -->
+        <div id="lobby-screen" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; z-index:500; padding:20px; box-sizing:border-box; overflow-y:auto;">
+            <div style="display:flex; align-items:center; margin-bottom:20px; gap:10px;">
+                <button onclick="closeGameLobby()" style="background:rgba(255,255,255,0.1); border:2px solid #5A2FC0; color:#FFD700; font-size:20px; padding:6px 14px; border-radius:12px; cursor:pointer; font-family:'Fredoka One',cursive;">←</button>
+                <h2 id="lobby-title" style="margin:0;">Лобби</h2>
             </div>
-            <button class="btn-play" style="width: 100%; margin-bottom: 20px;" onclick="openCreateModal()">➕ СОЗДАТЬ КОМНАТУ</button>
-            <h3 style="font-size: 14px; text-align: center; color: black; text-transform: uppercase;">Доступные комнаты:</h3>
+            <button class="btn-play" style="width:100%; margin-bottom:16px; font-size:16px; padding:14px;" onclick="openCreateModal()">➕ СОЗДАТЬ КОМНАТУ</button>
+            <h3 style="font-family:'Fredoka One',cursive; color:#A080D0; font-size:13px; text-align:center; text-transform:uppercase; letter-spacing:1.5px; margin-bottom:12px;">Доступные комнаты:</h3>
             <div id="rooms-container"></div>
         </div>
 
+        <!-- ТОП -->
         <div id="tab-rating" class="tab-content">
-    <h2 style="margin: 0 0 20px 0; text-align: center; color: #ffcc00;">🏆 ТОП АРЕНЫ</h2>
-    <div id="top-users-list" style="display: flex; flex-direction: column; gap: 10px;">
-        <p style="text-align: center; color: gray;">Загружаем чемпионов...</p>
-    </div>
-</div>
+            <h2 style="margin:0 0 16px 0;">🏆 Топ Арены</h2>
+            <div id="top-users-list" style="display:flex; flex-direction:column; gap:6px;">
+                <p style="text-align:center; color:#A080D0; font-size:14px;">Загружаем чемпионов...</p>
+            </div>
+        </div>
 
-<div id="tab-profile" class="tab-content">
-    <h2 style="margin-top: 0;">Профиль</h2>
-    <p style="font-size: 18px; color: #000000; font-weight: bold;">Рады видеть, <span id="username">Игрок</span>!</p>
-    <button class="btn-play" style="background: #e53935; width: 100%;" onclick="tg.close()">ВЫЙТИ В БОТА</button>
-</div>
+        <!-- ПРОФИЛЬ -->
+        <div id="tab-profile" class="tab-content">
+            <h2 style="margin-bottom:20px;">👤 Профиль</h2>
+            <div style="background:linear-gradient(135deg,#2A1060,#3D1A8A); border-radius:20px; padding:20px; border:2px solid #5A2FC0; text-align:center; margin-bottom:16px; box-shadow:0 4px 0 #3D1A8A;">
+                <div style="font-size:48px; margin-bottom:8px;">🎮</div>
+                <div style="font-family:'Fredoka One',cursive; font-size:20px; color:#FFD700; margin-bottom:4px;" id="profile-name">Игрок</div>
+                <div style="color:#A080D0; font-size:13px;">PVP Star Arena</div>
+            </div>
+            <button class="btn-play" style="background:linear-gradient(135deg,#FF3B5C,#C0002A); width:100%; border-color:#80001A; box-shadow:0 4px 0 #80001A, 0 6px 20px rgba(255,59,92,0.4);" onclick="tg.close()">
+                🚪 ВЫЙТИ В БОТА
+            </button>
+        </div>
 
-
+        <!-- КЕЙСЫ -->
         <div id="tab-cases" class="tab-content">
-    <h2 style="margin: 0 0 20px 0; text-align: center;">🎁 КЕЙСЫ</h2>
+            <h2 style="margin:0 0 16px 0;">🎁 Кейсы</h2>
 
-    <!-- МАЛЕНЬКИЙ КЕЙС -->
-    <div class="case-card" onclick="openCase('small')">
-        <div class="case-icon">📦</div>
-        <div class="case-info">
-            <div class="case-title">Маленький кейс</div>
-            <div class="case-price">Цена: 3 ⭐</div>
-            <div class="case-prizes">Призы: 1 ⭐ · 3 ⭐ · 5 ⭐</div>
+            <div class="case-card" onclick="openCase('small')">
+                <div class="case-icon">📦</div>
+                <div class="case-info">
+                    <div class="case-title">Маленький кейс</div>
+                    <div class="case-price">Цена: 3 ⭐</div>
+                    <div class="case-prizes">Призы: 1 ⭐ · 3 ⭐ · 5 ⭐</div>
+                </div>
+                <button class="btn-play case-btn">ОТКРЫТЬ</button>
+            </div>
+
+            <div class="case-card" onclick="openCase('medium')">
+                <div class="case-icon">🎁</div>
+                <div class="case-info">
+                    <div class="case-title">Средний кейс</div>
+                    <div class="case-price">Цена: 5 ⭐</div>
+                    <div class="case-prizes">Призы: 1 ⭐ · 3 ⭐ · 5 ⭐ · 7 ⭐ · 10 ⭐</div>
+                </div>
+                <button class="btn-play case-btn">ОТКРЫТЬ</button>
+            </div>
         </div>
-        <button class="btn-play case-btn">ОТКРЫТЬ</button>
+
+    </div><!-- /content -->
+
+    <!-- РУЛЕТКА КЕЙСА -->
+    <div id="case-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; z-index:3000; flex-direction:column; align-items:center; justify-content:center; padding:20px; box-sizing:border-box;">
+        <h2 id="case-overlay-title" style="margin-bottom:20px;">📦 Маленький кейс</h2>
+        <div style="width:90%; overflow:hidden; border-radius:16px; border:2.5px solid #FFD700; position:relative; box-shadow:0 0 30px rgba(255,215,0,0.3);">
+            <div style="position:absolute; top:0; left:50%; transform:translateX(-50%); width:3px; height:100%; background:#FFD700; z-index:10; box-shadow:0 0 10px #FFD700;"></div>
+            <div id="roulette-track" style="display:flex; transition:transform 0.05s linear; will-change:transform;"></div>
+        </div>
+        <div id="case-result" style="margin-top:30px; text-align:center; display:none;">
+            <div id="case-prize-text" style="font-size:38px; color:#FFD700; font-family:'Fredoka One',cursive;"></div>
+            <div id="case-balance-text" style="font-size:15px; color:#F0E6FF; margin-top:8px;"></div>
+            <button class="btn-play" style="margin-top:20px; padding:14px 44px; font-size:17px;" onclick="closeCaseOverlay()">ЗАБРАТЬ! 🎉</button>
+        </div>
+        <button onclick="closeCaseOverlay()" style="margin-top:16px; background:none; border:none; color:#A080D0; font-size:14px; cursor:pointer;" id="case-close-btn">✕ Закрыть</button>
     </div>
 
-    <!-- СРЕДНИЙ КЕЙС -->
-    <div class="case-card" onclick="openCase('medium')">
-        <div class="case-icon">🎁</div>
-        <div class="case-info">
-            <div class="case-title">Средний кейс</div>
-            <div class="case-price">Цена: 5 ⭐</div>
-            <div class="case-prizes">Призы: 1 ⭐ · 3 ⭐ · 5 ⭐ · 7 ⭐ · 10 ⭐</div>
-        </div>
-        <button class="btn-play case-btn">ОТКРЫТЬ</button>
-    </div>
-</div>
+    <!-- ИГРОВОЙ ЭКРАН -->
+    <div id="game-screen" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; z-index:2000; flex-direction:column;">
 
-<!-- РУЛЕТКА КЕЙСА (попап) -->
-<div id="case-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.92); z-index:3000; flex-direction:column; align-items:center; justify-content:center;">
-    <h2 id="case-overlay-title" style="color:#ffcc00; margin-bottom:20px;">📦 Маленький кейс</h2>
-
-    <!-- Рулетка -->
-    <div style="width:90%; overflow:hidden; border-radius:12px; border:2px solid #ffcc00; position:relative;">
-        <!-- Указатель -->
-        <div style="position:absolute; top:0; left:50%; transform:translateX(-50%); width:3px; height:100%; background:#ffcc00; z-index:10;"></div>
-        <div id="roulette-track" style="display:flex; transition:transform 0.05s linear; will-change:transform;"></div>
-    </div>
-
-    <div id="case-result" style="margin-top:30px; text-align:center; display:none;">
-        <div id="case-prize-text" style="font-size:32px; color:#ffcc00; font-weight:bold;"></div>
-        <div id="case-balance-text" style="font-size:16px; color:white; margin-top:8px;"></div>
-        <button class="btn-play" style="margin-top:20px; padding:12px 40px; font-size:16px;" onclick="closeCaseOverlay()">ЗАБРАТЬ</button>
-    </div>
-    <button onclick="closeCaseOverlay()" style="margin-top:15px; background:none; border:none; color:#888; font-size:14px;" id="case-close-btn">✕ Закрыть</button>
-</div>
-
-<div id="game-screen" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#1a1a1a; z-index:2000; flex-direction:column;">
-    <div id="scores-container" style="display: flex; flex-direction: column; align-items: center; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 10px; margin-bottom: 10px;">
-    <div style="display: flex; justify-content: space-around; width: 100%; margin-bottom: 10px;">
-        <div id="player1-box" style="text-align: center; border-bottom: 3px solid #3498db; width: 40%;">
-            <div style="font-size: 12px; opacity: 0.8;">ТЫ</div>
-            <div id="my-score" style="font-size: 20px; font-weight: bold;">0</div>
+        <div id="scores-container" style="display:flex; flex-direction:column; align-items:center; padding:10px 14px; margin:10px; margin-bottom:6px; border-radius:16px;">
+            <div style="display:flex; justify-content:space-around; width:100%; margin-bottom:8px;">
+                <div id="player1-box" style="text-align:center; padding-bottom:6px;">
+                    <div style="font-size:11px; color:#A080D0; font-weight:800; letter-spacing:1px;">ТЫ</div>
+                    <div id="my-score">0</div>
+                </div>
+                <div style="font-size:28px; display:flex; align-items:center; opacity:0.7;">⚡</div>
+                <div id="player2-box" style="text-align:center; opacity:0.5;">
+                    <div style="font-size:11px; color:#A080D0; font-weight:800; letter-spacing:1px;">ВРАГ</div>
+                    <div id="enemy-score">0</div>
+                </div>
+            </div>
+            <div id="turn-text" style="color:#ffcc00; font-size:14px; font-weight:bold; text-transform:uppercase;">Ожидание начала...</div>
         </div>
-        <div id="turn-indicator" style="font-size: 24px; display: flex; align-items: center;">⚡</div>
-        <div id="player2-box" style="text-align: center; opacity: 0.5; width: 40%;">
-            <div style="font-size: 12px; opacity: 0.8;">ВРАГ</div>
-            <div id="enemy-score" style="font-size: 20px; font-weight: bold;">0</div>
+
+        <div style="padding:0 14px 10px; text-align:center;">
+            <h2 id="game-status" style="font-size:17px; margin-bottom:8px;">Приготовьтесь...</h2>
+            <div style="background:rgba(255,255,255,0.1); height:8px; width:100%; border-radius:10px; overflow:hidden; border:1px solid rgba(255,215,0,0.2);">
+                <div id="timer-bar" style="background:linear-gradient(90deg,#FF7A00,#FFD700); width:100%; height:100%; transition:width 0.1s linear; border-radius:10px;"></div>
+            </div>
         </div>
-    </div>
-    <div id="turn-text" style="color: #ffcc00; font-size: 14px; font-weight: bold; text-transform: uppercase;">Ожидание начала...</div>
-</div>
-    <div style="padding: 20px; text-align: center;">
-        <h2 id="game-status" style="color: white; margin: 0; font-size: 18px;">Приготовьтесь...</h2>
-        <div style="background: #333; height: 8px; width: 100%; margin-top: 15px; border-radius: 5px; overflow: hidden;">
-            <div id="timer-bar" style="background: #ffcc00; width: 100%; height: 100%; transition: width 0.1s linear;"></div>
+
+        <div id="instruction-layer" style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:88%; text-align:center; z-index:2100; padding:22px; border-radius:24px; display:none;">
+            <h2 style="color:#FFD700; margin-bottom:14px; font-size:20px;">КАК ИГРАТЬ? 🧠</h2>
+            <div style="text-align:left; font-size:14px; line-height:1.8;">
+                <p style="color:#F0E6FF; margin-bottom:6px;">1️⃣ <b style="color:#FFD700;">ЗАПОМНИ:</b> У тебя 10 сек на просмотр пар.</p>
+                <p style="color:#F0E6FF; margin-bottom:6px;">2️⃣ <b style="color:#FFD700;">ХОДИ:</b> Нашел пару? +1 балл и <b>ХОДИШЬ СНОВА!</b></p>
+                <p style="color:#F0E6FF;">3️⃣ <b style="color:#FFD700;">ПОБЕДА:</b> Больше очков = Весь банк.</p>
+            </div>
+            <p style="color:#A080D0; font-size:12px; margin-top:12px;">Комиссия арены: 20%</p>
         </div>
+
+        <div class="memory-grid" id="memory-grid" style="opacity:0; transition:opacity 0.5s; padding:8px;"></div>
     </div>
 
-    <div id="instruction-layer" style="position: absolute; top: 55%; left: 50%; transform: translate(-50%, -50%); width: 85%; text-align: center; z-index: 2100; background: rgba(0,0,0,0.9); padding: 20px; border-radius: 20px; border: 1px solid #ffcc00; display: none;">
-        <h2 style="color: #ffcc00; margin-bottom: 15px;">КАК ИГРАТЬ? 🧠</h2>
-        <div style="color: white; text-align: left; font-size: 14px; line-height: 1.6;">
-            <p style="color: white;">1️⃣ <b>ЗАПОМНИ:</b> У тебя 10 сек на просмотр пар.</p>
-            <p style="color: white;">2️⃣ <b>ХОДИ:</b> Нашел пару? +1 балл и <b>ХОДИШЬ СНОВА!</b></p>
-            <p style="color: white;">3️⃣ <b>ПОБЕДА:</b> Больше всех очков = Весь банк.</p>
-        </div>
-        <p style="color: #888; font-size: 12px; margin-top: 10px;">Комиссия арены: 20%</p>
-    </div>
-
-    <div class="memory-grid" id="memory-grid" style="opacity: 0; transition: opacity 0.5s;">
-        </div>
-</div>
-
-    <div id="modal-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background-color: rgba(0,0,0,0.8); z-index:1000; justify-content:center; align-items:center;">
-        <div style="background:#222; padding:25px; border-radius:20px; width:80%; text-align:center; border: 1px solid #444;">
-            <h3 style="color:white; margin-top:0;">Выберите ставку</h3>
-            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+    <!-- МОДАЛ СТАВКИ -->
+    <div id="modal-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background-color:rgba(10,4,30,0.85); z-index:1000; justify-content:center; align-items:center; backdrop-filter:blur(8px);">
+        <div style="background:linear-gradient(135deg,#240D55,#3D1A8A); padding:26px; border-radius:24px; width:82%; text-align:center; border:2.5px solid #FFD700; box-shadow:0 8px 0 #1A0A40, 0 16px 40px rgba(0,0,0,0.6);">
+            <h3 style="font-family:'Fredoka One',cursive; color:#FFD700; margin-top:0; margin-bottom:18px; font-size:20px; text-shadow:-1px -1px 0 #1A0A40,1px -1px 0 #1A0A40,-1px 1px 0 #1A0A40,1px 1px 0 #1A0A40;">💰 Выбери ставку</h3>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:16px;">
                 <button class="btn-play" onclick="createRoom(3)">3 ⭐</button>
                 <button class="btn-play" onclick="createRoom(5)">5 ⭐</button>
                 <button class="btn-play" onclick="createRoom(10)">10 ⭐</button>
                 <button class="btn-play" onclick="createRoom(15)">15 ⭐</button>
             </div>
-            <button onclick="closeCreateModal()" style="margin-top:20px; background:none; border:none; color:#888;">Отмена</button>
+            <button onclick="closeCreateModal()" style="background:none; border:none; color:#A080D0; font-size:14px; cursor:pointer; font-weight:700;">Отмена</button>
         </div>
     </div>
 
+    <!-- НИЖНЕЕ МЕНЮ -->
     <nav class="bottom-nav">
-        <div class="nav-item active" onclick="switchTab('tab-games', this)"><span class="nav-icon">🎮</span><span>Игры</span></div>
-        <div class="nav-item" onclick="switchTab('tab-cases', this)"><span class="nav-icon">🎁</span><span>Кейсы</span></div>
-        <div class="nav-item" onclick="switchTab('tab-rating', this)"><span class="nav-icon">🏆</span><span>Топ</span></div>
-        <div class="nav-item" onclick="switchTab('tab-profile', this)"><span class="nav-icon">👤</span><span>Профиль</span></div>
+        <div class="nav-item active" onclick="switchTab('tab-games', this)">
+            <span class="nav-icon">⚔️</span>
+            <span>Игры</span>
+        </div>
+        <div class="nav-item" onclick="switchTab('tab-cases', this)">
+            <span class="nav-icon">🎁</span>
+            <span>Кейсы</span>
+        </div>
+        <div class="nav-item" onclick="switchTab('tab-rating', this)">
+            <span class="nav-icon">🏆</span>
+            <span>Топ</span>
+        </div>
+        <div class="nav-item" onclick="switchTab('tab-profile', this)">
+            <span class="nav-icon">👤</span>
+            <span>Профиль</span>
+        </div>
     </nav>
 
-    <script src="script.js?v=999"></script>
+    <script src="script.js?v=1000"></script>
+    <script>
+        // Синхронизируем имя в профиле
+        const _u = window.Telegram?.WebApp?.initDataUnsafe?.user;
+        if (_u) {
+            const pn = document.getElementById('profile-name');
+            if (pn) pn.innerText = _u.first_name || _u.username || 'Игрок';
+        }
+    </script>
 </body>
-</html><!-- styles already linked -->
+</html>
