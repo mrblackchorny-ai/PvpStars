@@ -42,7 +42,7 @@
         <div id="lobby-screen" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; z-index:500; padding:60px 20px 20px; box-sizing:border-box; overflow-y:auto; background:linear-gradient(160deg,#1A0A40 0%,#2A1060 50%,#1A0A40 100%);">
             <div style="display:flex; align-items:center; gap:10px; margin-bottom:20px;">
                 <button onclick="closeGameLobby()" style="background:linear-gradient(135deg,#FFD700,#FF9500); border:none; color:#1A0A40; font-size:20px; width:50px; height:50px; border-radius:14px; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-weight:900; box-shadow:0 4px 0 #CC7000;">←</button>
-                <button class="btn-play" style="flex:1; font-size:15px; padding:14px;" onclick="openCreateModal()">➕ СОЗДАТЬ КОМНАТУ</button>
+                <button id="btn-play1" class="btn-play" style="flex:1; font-size:15px; padding:14px;" onclick="openCreateModal()">➕ СОЗДАТЬ КОМНАТУ</button>
             </div>
             <p style="color:#A080D0; font-size:12px; text-align:center; text-transform:uppercase; letter-spacing:1.5px; margin-bottom:12px;">Доступные комнаты:</p>
             <div id="rooms-container"></div>
