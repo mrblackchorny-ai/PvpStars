@@ -652,7 +652,7 @@ h2 {
     transform: translateY(2px);
     box-shadow: 0 1px 0 #CC7000;
 }
-.btn-play{
+#btn-play1{
     padding-top: 30px;
-    margin-top: 17px;
+    margin-top: 16px;
 }
